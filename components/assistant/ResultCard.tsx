@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Alert } from "react-native";
 import { router } from "expo-router";
 import { MenuItem, Restaurant } from "../../types/domain";
 import { Card } from "../ui/Card";
@@ -49,6 +49,7 @@ function RestaurantResultCard({ restaurant }: { restaurant: Restaurant }) {
 
 function ItemResultCard({ item }: { item: MenuItem }) {
   const addItem = useCartStore((s) => s.addItem);
+  const replaceCartForNewRestaurant = useCartStore((s) => s.replaceCartForNewRestaurant);
   const [added, setAdded] = useState(false);
 
   function onCardPress() {
@@ -62,9 +63,30 @@ function ItemResultCard({ item }: { item: MenuItem }) {
       router.push(`/food/${item.id}`);
       return;
     }
-    addItem(item, { optionSelections: {}, addOnIds: [] }, 1);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    const result = addItem(item, { optionSelections: {}, addOnIds: [] }, 1);
+    if (result.status === "ok") {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1500);
+      return;
+    }
+    // result.status === "different-restaurant": never claim success for a conflict that was
+    // actually swallowed -- surface the same confirm dialog used everywhere else in the app.
+    Alert.alert(
+      "Start a new cart?",
+      "Your cart has items from a different restaurant. Adding this item will clear your current cart and start a new one.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Start New Cart",
+          style: "destructive",
+          onPress: () => {
+            replaceCartForNewRestaurant(item, { optionSelections: {}, addOnIds: [] }, 1);
+            setAdded(true);
+            setTimeout(() => setAdded(false), 1500);
+          },
+        },
+      ]
+    );
   }
 
   return (

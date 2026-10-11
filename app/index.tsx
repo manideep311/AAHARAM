@@ -14,7 +14,7 @@ export default function Splash() {
   const scale = useSharedValue(0.9);
 
   useEffect(() => {
-    AsyncStorage.getItem("crave:onboarding-seen").then((v) => setOnboardingSeen(v === "true"));
+    AsyncStorage.getItem("aaharam:onboarding-seen").then((v) => setOnboardingSeen(v === "true"));
   }, []);
 
   useEffect(() => {

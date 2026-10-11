@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Alert } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import { router } from "expo-router";
 import { MenuItem, VegFlag } from "../../types/domain";
@@ -33,6 +33,7 @@ function hasNoCustomization(customization: { optionSelections: Record<string, st
 export function MenuItemRow({ item, restaurantIsOpen }: { item: MenuItem; restaurantIsOpen: boolean }) {
   const lines = useCartStore((s) => s.lines);
   const addItem = useCartStore((s) => s.addItem);
+  const replaceCartForNewRestaurant = useCartStore((s) => s.replaceCartForNewRestaurant);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
 
   const hasRequiredOptions = item.optionGroups.some((g) => g.required);
@@ -46,11 +47,29 @@ export function MenuItemRow({ item, restaurantIsOpen }: { item: MenuItem; restau
     router.push(`/food/${item.id}`);
   }
 
+  function addWithConflictCheck(addQuantity: number) {
+    const result = addItem(item, { optionSelections: {}, addOnIds: [] }, addQuantity);
+    if (result.status === "different-restaurant") {
+      Alert.alert(
+        "Start a new cart?",
+        "Your cart has items from a different restaurant. Adding this item will clear your current cart and start a new one.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Start New Cart",
+            style: "destructive",
+            onPress: () => replaceCartForNewRestaurant(item, { optionSelections: {}, addOnIds: [] }, addQuantity),
+          },
+        ]
+      );
+    }
+  }
+
   function onAddPress() {
     if (hasRequiredOptions) {
       router.push(`/food/${item.id}`);
     } else {
-      addItem(item, { optionSelections: {}, addOnIds: [] }, 1);
+      addWithConflictCheck(1);
     }
   }
 
@@ -58,7 +77,7 @@ export function MenuItemRow({ item, restaurantIsOpen }: { item: MenuItem; restau
     if (existingLine) {
       updateQuantity(existingLine.lineId, existingLine.quantity + 1);
     } else {
-      addItem(item, { optionSelections: {}, addOnIds: [] }, 1);
+      addWithConflictCheck(1);
     }
   }
 

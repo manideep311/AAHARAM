@@ -31,7 +31,10 @@ export function interpretPrompt(prompt: string): AssistantQuery {
 }
 
 export function runAssistantQuery(query: AssistantQuery): AssistantResult {
-  let items: MenuItem[] = SEED_MENU_ITEMS.filter((i) => i.isAvailable);
+  // Defense-in-depth: createOrder's isOpen check is the authoritative guard against ordering from
+  // a closed restaurant, but the assistant shouldn't recommend dishes from one in the first place.
+  const openRestaurantIds = new Set(SEED_RESTAURANTS.filter((r) => r.isOpen).map((r) => r.id));
+  let items: MenuItem[] = SEED_MENU_ITEMS.filter((i) => i.isAvailable && openRestaurantIds.has(i.restaurantId));
   if (query.maxBudget) items = items.filter((i) => i.basePrice <= query.maxBudget!);
   if (query.vegOnly) items = items.filter((i) => i.vegFlag === "veg");
   if (query.cuisineKeywords.length) {

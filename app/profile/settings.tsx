@@ -9,7 +9,7 @@ import { SectionHeader } from "../../components/ui/SectionHeader";
 import { colors } from "../../constants/theme";
 import { BRAND_NAME } from "../../constants/brand";
 
-const SETTINGS_STORAGE_KEY = "crave:notification-settings";
+const SETTINGS_STORAGE_KEY = "aaharam:notification-settings";
 
 interface NotificationSettings {
   orderUpdates: boolean;

@@ -11,6 +11,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { useCartStore } from "../../store/cart-store";
 import { CartCustomization } from "../../types/domain";
+import { colors } from "../../constants/theme";
 
 const SUCCESS_VISIBLE_MS = 700;
 const FADE_MS = 200;
@@ -144,7 +145,7 @@ export default function FoodCustomizationScreen() {
               borderRadius: 16,
               paddingVertical: 12,
               paddingHorizontal: 16,
-              backgroundColor: "#198754",
+              backgroundColor: colors.success,
             },
             successStyle,
           ]}

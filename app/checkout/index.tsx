@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { ArrowLeft, AlertTriangle, ShoppingBag, MapPin, Smartphone, CreditCard, Landmark, Banknote, LucideIcon, Check } from "lucide-react-native";
+import { ArrowLeft, AlertTriangle, ShoppingBag, MapPin, Smartphone, CreditCard, Landmark, Banknote, LucideIcon, Check, Clock } from "lucide-react-native";
 import { useCartStore } from "../../store/cart-store";
 import { useCheckoutSelectionStore } from "../../store/checkout-selection-store";
 import { getAddresses } from "../../services/addresses";
@@ -202,13 +202,27 @@ export default function CheckoutScreen() {
     );
   }
 
-  const canPlaceOrder = !!resolvedAddress && lines.length > 0 && !placingOrder;
+  // UI-layer safety net, consistent with the rest of the app's "clearly explain + disable"
+  // pattern -- this is NOT the authoritative guard (that's createOrder's isOpen check, which must
+  // hold regardless of this). It just keeps a normal user from ever reaching the thrown-error
+  // fallback in the first place.
+  const restaurantClosed = !restaurant.isOpen;
+  const canPlaceOrder = !!resolvedAddress && lines.length > 0 && !placingOrder && !restaurantClosed;
 
   return (
     <View className="flex-1 bg-bg">
       <Header title="Checkout" topInset={insets.top} />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 140 }}>
+        {restaurantClosed ? (
+          <View className="mb-3 flex-row items-center rounded-xl bg-danger/10 px-3 py-2.5">
+            <Clock size={16} color={colors.danger} />
+            <Text className="ml-2 flex-1 text-sm font-semibold text-danger">
+              {restaurant.name} is currently closed and can't accept orders right now.
+            </Text>
+          </View>
+        ) : null}
+
         {/* Delivery address */}
         <Card className="mb-3 p-4">
           <View className="flex-row items-start justify-between">
@@ -319,11 +333,11 @@ export default function CheckoutScreen() {
           </View>
         ) : null}
         <Button
-          title="Place Order"
+          title={restaurantClosed ? "Restaurant Closed" : "Place Order"}
           size="lg"
           disabled={!canPlaceOrder}
           loading={placingOrder}
-          accessibilityLabel="Place Order"
+          accessibilityLabel={restaurantClosed ? "Restaurant closed, cannot place order" : "Place Order"}
           onPress={handlePlaceOrder}
         />
       </View>

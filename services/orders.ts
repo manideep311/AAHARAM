@@ -3,8 +3,8 @@ import { Order, OrderStatus, CartLineItem, MenuItem, Restaurant, Coupon, Address
 import { calculateCartTotals } from "../lib/pricing/calculate";
 import { SEED_ORDERS } from "../data/seed/orders";
 
-const ORDERS_KEY = "crave:orders";
-const REQUEST_IDS_KEY = "crave:order-request-ids";
+const ORDERS_KEY = "aaharam:orders";
+const REQUEST_IDS_KEY = "aaharam:order-request-ids";
 
 async function readOrders(): Promise<Order[]> {
   const raw = await AsyncStorage.getItem(ORDERS_KEY);
@@ -39,6 +39,14 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   if (seen[input.clientRequestId]) {
     const existing = await getOrderById(seen[input.clientRequestId]);
     if (existing) return existing; // idempotent replay: return the already-created order, never duplicate
+  }
+
+  // Authoritative guard: this is the one check that actually closes the hole regardless of entry
+  // path (direct menu browse, search, or the assistant) -- those UI-layer surfaces only disable
+  // the button, they don't all re-check isOpen before a cart line reaches here. Must run BEFORE
+  // anything is built or persisted.
+  if (!input.restaurant.isOpen) {
+    throw new Error(`${input.restaurant.name} is currently closed and cannot accept orders.`);
   }
 
   const totals = calculateCartTotals(input.lines, input.menuItems, input.restaurant, input.coupon);

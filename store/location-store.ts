@@ -13,6 +13,6 @@ export const useLocationStore = create<LocationState>()(
       label: null,
       setLabel: (label) => set({ label }),
     }),
-    { name: "crave:location", storage: createJSONStorage(() => AsyncStorage) }
+    { name: "aaharam:location", storage: createJSONStorage(() => AsyncStorage) }
   )
 );

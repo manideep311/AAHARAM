@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Alert } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import { router } from "expo-router";
 import { MenuItem, VegFlag } from "../../types/domain";
@@ -30,6 +30,7 @@ function VegIndicator({ vegFlag }: { vegFlag: VegFlag }) {
 
 export function FoodCard({ item }: { item: MenuItem }) {
   const addItem = useCartStore((s) => s.addItem);
+  const replaceCartForNewRestaurant = useCartStore((s) => s.replaceCartForNewRestaurant);
 
   function onCardPress() {
     router.push(`/food/${item.id}`);
@@ -39,8 +40,22 @@ export function FoodCard({ item }: { item: MenuItem }) {
     const hasRequiredOptions = item.optionGroups.some((g) => g.required);
     if (hasRequiredOptions) {
       router.push(`/food/${item.id}`);
-    } else {
-      addItem(item, { optionSelections: {}, addOnIds: [] }, 1);
+      return;
+    }
+    const result = addItem(item, { optionSelections: {}, addOnIds: [] }, 1);
+    if (result.status === "different-restaurant") {
+      Alert.alert(
+        "Start a new cart?",
+        "Your cart has items from a different restaurant. Adding this item will clear your current cart and start a new one.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Start New Cart",
+            style: "destructive",
+            onPress: () => replaceCartForNewRestaurant(item, { optionSelections: {}, addOnIds: [] }, 1),
+          },
+        ]
+      );
     }
   }
 

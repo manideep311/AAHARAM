@@ -65,6 +65,8 @@ export default function OrderConfirmationScreen() {
   }
 
   const paymentStatusText = order.paymentMethod === "cod" ? "Pay on delivery" : "Payment successful";
+  const paymentStatusCaption =
+    order.paymentMethod === "cod" ? null : "Simulated payment — no money moved";
 
   return (
     <View className="flex-1 bg-bg">
@@ -105,6 +107,9 @@ export default function OrderConfirmationScreen() {
             <Banknote size={18} color={colors.primary} />
             <Text className="ml-2 text-sm font-semibold text-ink">{paymentStatusText}</Text>
           </View>
+          {paymentStatusCaption ? (
+            <Text className="ml-7 mt-0.5 text-xs text-muted">{paymentStatusCaption}</Text>
+          ) : null}
         </Card>
 
         <Card className="mb-4 p-4">

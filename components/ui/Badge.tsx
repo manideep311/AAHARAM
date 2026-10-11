@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { LucideIcon } from "lucide-react-native";
+import { colors } from "../../constants/theme";
 
 const TONE_CLASSES: Record<string, string> = {
   primary: "bg-primary/10 text-primary",
@@ -10,10 +11,10 @@ const TONE_CLASSES: Record<string, string> = {
 };
 
 const TONE_ICON_COLORS: Record<string, string> = {
-  primary: "#FF5A36",
-  success: "#198754",
-  muted: "#777777",
-  danger: "#D64545",
+  primary: colors.primary,
+  success: colors.success,
+  muted: colors.muted,
+  danger: colors.danger,
 };
 
 interface BadgeProps {

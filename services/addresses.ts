@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Address } from "../types/domain";
 import { SEED_ADDRESSES } from "../data/seed/addresses";
 
-const KEY = "crave:addresses";
+const KEY = "aaharam:addresses";
 
 async function readAll(): Promise<Address[]> {
   const raw = await AsyncStorage.getItem(KEY);

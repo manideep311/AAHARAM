@@ -1,7 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { User } from "../types/domain";
 
-const SESSION_KEY = "crave:session";
+const SESSION_KEY = "aaharam:session";
 
 export async function getCurrentUser(): Promise<User | null> {
   const raw = await SecureStore.getItemAsync(SESSION_KEY);

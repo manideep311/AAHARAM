@@ -13,7 +13,7 @@ import { RestaurantCard } from "../../components/home/RestaurantCard";
 import { FoodCard } from "../../components/home/FoodCard";
 import { colors } from "../../constants/theme";
 
-const RECENT_SEARCHES_KEY = "crave:recent-searches";
+const RECENT_SEARCHES_KEY = "aaharam:recent-searches";
 const MAX_RECENT_SEARCHES = 8;
 const DEBOUNCE_MS = 300;
 

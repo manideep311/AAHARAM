@@ -3,7 +3,7 @@ import { View, Text, Pressable, TextInput, SectionList, ScrollView } from "react
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, Search as SearchIcon, X, Clock, AlertTriangle, UtensilsCrossed } from "lucide-react-native";
+import { ArrowLeft, Search as SearchIcon, X, Clock, AlertTriangle, UtensilsCrossed, ShoppingCart } from "lucide-react-native";
 import { getRestaurantById, getMenuForRestaurant } from "../../services/restaurants";
 import { SEED_OFFERS } from "../../data/seed/offers";
 import { MenuCategoryBar, MenuCategoryChip } from "../../components/restaurant/MenuCategoryBar";
@@ -13,6 +13,8 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ImageWithFallback } from "../../components/ui/ImageWithFallback";
 import { RatingPill } from "../../components/ui/RatingPill";
 import { formatCurrency } from "../../lib/formatting/currency";
+import { calculateCartTotals } from "../../lib/pricing/calculate";
+import { useCartStore } from "../../store/cart-store";
 import { MenuItem } from "../../types/domain";
 import { colors } from "../../constants/theme";
 
@@ -33,6 +35,9 @@ export default function RestaurantDetailsScreen() {
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const sectionListRef = useRef<SectionList<MenuItem, MenuSection>>(null);
 
+  const cartRestaurantId = useCartStore((s) => s.restaurantId);
+  const cartLines = useCartStore((s) => s.lines);
+
   const restaurantQuery = useQuery({
     queryKey: ["restaurant", restaurantId],
     queryFn: () => getRestaurantById(restaurantId as string),
@@ -48,6 +53,14 @@ export default function RestaurantDetailsScreen() {
   const restaurant = restaurantQuery.data;
   const categories = menuQuery.data?.categories ?? [];
   const allItems = menuQuery.data?.items ?? [];
+
+  // Only surface the sticky cart bar for THIS restaurant's own cart -- a non-empty cart from
+  // browsing a different restaurant earlier must never show up here as a false "view cart" prompt.
+  const showCartBar = !!restaurant && cartLines.length > 0 && cartRestaurantId === restaurant.id;
+  const cartSubtotal = useMemo(
+    () => (restaurant ? calculateCartTotals(cartLines, allItems, restaurant, null).subtotal : 0),
+    [cartLines, allItems, restaurant]
+  );
 
   const trimmedSearch = searchText.trim().toLowerCase();
   const filteredItems = useMemo(() => {
@@ -270,8 +283,26 @@ export default function RestaurantDetailsScreen() {
             description={trimmedSearch ? `No menu items match "${searchText}".` : "This restaurant has no menu items yet."}
           />
         }
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + (showCartBar ? 80 : 24) }}
       />
+
+      {showCartBar ? (
+        <Pressable
+          onPress={() => router.push("/cart")}
+          accessibilityRole="button"
+          accessibilityLabel="View cart"
+          className="absolute bottom-0 left-0 right-0 flex-row items-center justify-between bg-primary px-4 py-3.5"
+          style={{ paddingBottom: insets.bottom + 14 }}
+        >
+          <View className="flex-row items-center">
+            <ShoppingCart size={18} color="#fff" />
+            <Text className="ml-2 text-sm font-semibold text-white">
+              {cartLines.length} item{cartLines.length > 1 ? "s" : ""} · {formatCurrency(cartSubtotal)}
+            </Text>
+          </View>
+          <Text className="text-sm font-bold text-white">View Cart</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

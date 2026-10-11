@@ -19,6 +19,6 @@ export const usePreferencesStore = create<PreferencesState>()(
       preferences: { vegOnly: false, favoriteCuisines: [], budgetPerMeal: null },
       setPreferences: (next) => set({ preferences: { ...get().preferences, ...next } }),
     }),
-    { name: "crave:preferences", storage: createJSONStorage(() => AsyncStorage) }
+    { name: "aaharam:preferences", storage: createJSONStorage(() => AsyncStorage) }
   )
 );

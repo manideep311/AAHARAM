@@ -3,7 +3,7 @@ import { View, Text, FlatList, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { Bell, Search, CircleAlert, Sparkles } from "lucide-react-native";
+import { Bell, Search, CircleAlert, Sparkles, ShoppingCart } from "lucide-react-native";
 import { getRestaurants } from "../../services/restaurants";
 import { getOrders } from "../../services/orders";
 import { SEED_MENU_ITEMS } from "../../data/seed/menu-items";
@@ -15,6 +15,7 @@ import { useAuthStore } from "../../store/auth-store";
 import { useNotificationsStore } from "../../store/notifications-store";
 import { useFavoritesStore } from "../../store/favorites-store";
 import { usePreferencesStore } from "../../store/preferences-store";
+import { useCartStore } from "../../store/cart-store";
 import { ASSISTANT_NAME } from "../../constants/brand";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -60,6 +61,7 @@ export default function Home() {
   const locationLabel = useLocationStore((s) => s.label);
   const user = useAuthStore((s) => s.user);
   const unreadCount = useNotificationsStore((s) => s.unreadCount);
+  const cartCount = useCartStore((s) => s.lines.length);
   const favoritesLoaded = useFavoritesStore((s) => s.loaded);
   const loadFavorites = useFavoritesStore((s) => s.load);
   const favoriteRestaurantIds = useFavoritesStore((s) => s.restaurantIds);
@@ -145,6 +147,20 @@ export default function Home() {
               {unreadCount > 0 ? (
                 <View className="absolute top-0 right-0 min-w-[20px] items-center justify-center rounded-full bg-danger px-1.5 py-0.5">
                   <Text className="text-xs font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/cart")}
+              className="p-2 mr-1"
+              accessibilityRole="button"
+              accessibilityLabel="Cart"
+              hitSlop={8}
+            >
+              <ShoppingCart size={22} color={colors.ink} />
+              {cartCount > 0 ? (
+                <View className="absolute top-0 right-0 min-w-[20px] items-center justify-center rounded-full bg-danger px-1.5 py-0.5">
+                  <Text className="text-xs font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</Text>
                 </View>
               ) : null}
             </Pressable>

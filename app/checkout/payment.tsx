@@ -3,7 +3,7 @@ import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, FlaskConical, Smartphone, CreditCard, Landmark, Banknote, AlertTriangle, LucideIcon } from "lucide-react-native";
+import { ArrowLeft, FlaskConical, Smartphone, CreditCard, Landmark, Banknote, AlertTriangle, LucideIcon, Clock } from "lucide-react-native";
 import { useCartStore } from "../../store/cart-store";
 import { useCheckoutSelectionStore } from "../../store/checkout-selection-store";
 import { getAddresses } from "../../services/addresses";
@@ -108,11 +108,10 @@ export default function PaymentScreen() {
   const [phase, setPhase] = useState<"idle" | "processing" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Dev-only simulation: the first confirm attempt for any online method (not COD) pretends the
-  // payment gateway's response got lost AFTER the order was actually created, so the retry button
-  // exercises the real idempotency path (same clientRequestId => createOrder returns the same
-  // order instead of creating a second one). Only fires once per screen instance.
-  const simulatedFailureConsumedRef = useRef(false);
+  // UI-layer safety net (NOT the authoritative guard -- that's createOrder's isOpen check in
+  // services/orders.ts, which holds regardless of this): keeps a user from paying for an order
+  // from a restaurant that closed after checkout but before this screen was reached.
+  const restaurantClosed = !!restaurant && !restaurant.isOpen;
 
   // Guards against calling setState / router.replace after the user has navigated away (e.g.
   // tapped back while a request was still in flight). submittingRef itself is intentionally NOT
@@ -126,6 +125,7 @@ export default function PaymentScreen() {
   async function handleConfirm() {
     if (submittingRef.current) return;
     if (!resolvedAddress || !restaurant || !clientRequestId || lines.length === 0) return;
+    if (restaurantClosed) return;
 
     submittingRef.current = true;
     setIsSubmitting(true);
@@ -137,6 +137,14 @@ export default function PaymentScreen() {
         await new Promise((resolve) => setTimeout(resolve, PROCESSING_DELAY_MS));
       }
 
+      // NOTE: this screen previously injected a deterministic simulated failure AFTER createOrder
+      // succeeded, on every single first attempt for a non-COD method. That meant every demo
+      // online payment hit a scary unlabeled error, and -- because the throw happened after the
+      // order already existed -- a user who abandoned at that point left an orphaned "placed"
+      // order with a non-cleared cart. Removed outright: a normal demo checkout now succeeds on
+      // the first try by default, and the retry UI/logic below (phase "error", Retry Payment
+      // button, submittingRef reset) remains fully intact and exercised by any genuine failure --
+      // e.g. createOrder's closed-restaurant guard, or a real storage/network error.
       const order = await createOrder({
         clientRequestId,
         restaurant,
@@ -146,11 +154,6 @@ export default function PaymentScreen() {
         address: resolvedAddress,
         paymentMethod,
       });
-
-      if (paymentMethod !== "cod" && !simulatedFailureConsumedRef.current) {
-        simulatedFailureConsumedRef.current = true;
-        throw new Error("Payment gateway timed out before confirming. Please retry - you will not be charged twice.");
-      }
 
       useCartStore.getState().clearCart();
       if (!mountedRef.current) return;
@@ -259,6 +262,15 @@ export default function PaymentScreen() {
           </Card>
         ) : null}
 
+        {restaurantClosed ? (
+          <View className="mb-4 flex-row items-center rounded-xl bg-danger/10 px-3 py-2.5">
+            <Clock size={16} color={colors.danger} />
+            <Text className="ml-2 flex-1 text-sm font-semibold text-danger">
+              {restaurant.name} is currently closed and can't accept orders right now.
+            </Text>
+          </View>
+        ) : null}
+
         {phase === "processing" ? (
           <Card className="mb-4 items-center p-6">
             <ActivityIndicator size="large" color={colors.primary} />
@@ -279,16 +291,29 @@ export default function PaymentScreen() {
             title="Retry Payment"
             size="lg"
             loading={isSubmitting}
+            disabled={restaurantClosed}
             accessibilityLabel="Retry Payment"
             onPress={handleConfirm}
           />
         ) : (
           <Button
-            title={paymentMethod === "cod" ? "Place Order (Cash on Delivery)" : `Pay ${formatCurrency(total)}`}
+            title={
+              restaurantClosed
+                ? "Restaurant Closed"
+                : paymentMethod === "cod"
+                ? "Place Order (Cash on Delivery)"
+                : `Pay ${formatCurrency(total)}`
+            }
             size="lg"
             loading={isSubmitting}
-            disabled={isSubmitting}
-            accessibilityLabel={paymentMethod === "cod" ? "Place order, cash on delivery" : `Pay ${formatCurrency(total)}`}
+            disabled={isSubmitting || restaurantClosed}
+            accessibilityLabel={
+              restaurantClosed
+                ? "Restaurant closed, cannot pay"
+                : paymentMethod === "cod"
+                ? "Place order, cash on delivery"
+                : `Pay ${formatCurrency(total)}`
+            }
             onPress={handleConfirm}
           />
         )}

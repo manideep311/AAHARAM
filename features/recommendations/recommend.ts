@@ -1,4 +1,4 @@
-import { Order, Restaurant, User } from "../../types/domain";
+import { Order, Restaurant } from "../../types/domain";
 import { Preferences } from "../../store/preferences-store";
 
 export interface RecommendationGroup {

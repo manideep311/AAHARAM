@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const REST_KEY = "crave:favorites:restaurants";
-const ITEM_KEY = "crave:favorites:items";
+const REST_KEY = "aaharam:favorites:restaurants";
+const ITEM_KEY = "aaharam:favorites:items";
 
 async function readIds(key: string): Promise<string[]> {
   const raw = await AsyncStorage.getItem(key);

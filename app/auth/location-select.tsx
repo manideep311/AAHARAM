@@ -6,6 +6,7 @@ import { MapPin } from "lucide-react-native";
 import { TextField } from "../../components/ui/TextField";
 import { Button } from "../../components/ui/Button";
 import { useLocationStore } from "../../store/location-store";
+import { colors } from "../../constants/theme";
 
 function formatAddress(address: Location.LocationGeocodedAddress): string {
   const parts = [address.district || address.street, address.city || address.subregion, address.region].filter(
@@ -78,7 +79,7 @@ export default function LocationSelect() {
   if (status === "requesting") {
     return (
       <View className="flex-1 bg-bg items-center justify-center px-6">
-        <ActivityIndicator color="#FF5A36" size="large" />
+        <ActivityIndicator color={colors.primary} size="large" />
         <Text className="text-base text-muted mt-4 text-center">Detecting your location...</Text>
       </View>
     );
@@ -88,7 +89,7 @@ export default function LocationSelect() {
     <View className="flex-1 bg-bg px-6 justify-center">
       <View className="items-center mb-6">
         <View className="bg-primary/10 rounded-full p-5 mb-4">
-          <MapPin size={36} color="#FF5A36" />
+          <MapPin size={36} color={colors.primary} />
         </View>
         <Text className="text-2xl font-bold text-ink text-center mb-1">Set your location</Text>
         <Text className="text-base text-muted text-center">

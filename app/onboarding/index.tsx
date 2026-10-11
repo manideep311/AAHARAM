@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Compass, MapPin, Truck, Sparkles, LucideIcon } from "lucide-react-native";
 import { Button } from "../../components/ui/Button";
+import { colors } from "../../constants/theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -42,7 +43,7 @@ const SLIDES: Slide[] = [
 ];
 
 async function finishOnboarding() {
-  await AsyncStorage.setItem("crave:onboarding-seen", "true");
+  await AsyncStorage.setItem("aaharam:onboarding-seen", "true");
   router.replace("/auth/login");
 }
 
@@ -84,7 +85,7 @@ export default function Onboarding() {
         renderItem={({ item }) => (
           <View style={{ width: SCREEN_WIDTH }} className="items-center justify-center px-8">
             <View className="bg-primary/10 rounded-full p-8 mb-8">
-              <item.icon size={56} color="#FF5A36" />
+              <item.icon size={56} color={colors.primary} />
             </View>
             <Text className="text-2xl font-bold text-ink text-center mb-3">{item.title}</Text>
             <Text className="text-base text-muted text-center">{item.description}</Text>

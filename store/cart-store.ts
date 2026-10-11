@@ -80,6 +80,6 @@ export const useCartStore = create<CartState>()(
       applyCoupon: (code) => set({ couponCode: code }),
       removeCoupon: () => set({ couponCode: null }),
     }),
-    { name: "crave:cart", storage: createJSONStorage(() => AsyncStorage) }
+    { name: "aaharam:cart", storage: createJSONStorage(() => AsyncStorage) }
   )
 );
