@@ -12,6 +12,7 @@ module.exports = {
         muted: "#777777",
         border: "#F0E7E0",
         success: "#198754",
+        danger: "#D64545",
       },
     },
   },
