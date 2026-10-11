@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "crave",
-    "slug": "crave",
+    "name": "AAHARAM",
+    "slug": "AAHARAM",
     "version": "1.0.0",
-    "scheme": "crave",
+    "scheme": "AAHARAM",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -31,7 +31,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow CRAVE to use your location to find restaurants and set your delivery address."
+          "locationWhenInUsePermission": "Allow AAHARAM to use your location to find restaurants and set your delivery address."
         }
       ]
     ]
