@@ -8,14 +8,17 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { View, Text } from "react-native";
 import { useAuthStore } from "../store/auth-store";
 import { getCurrentUser } from "../services/auth";
+import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const setUser = useAuthStore((s) => s.setUser);
   const setHydrated = useAuthStore((s) => s.setHydrated);
+  const { isOnline } = useNetworkStatus();
 
   useEffect(() => {
     (async () => {
@@ -30,6 +33,15 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="dark" />
+          {!isOnline ? (
+            <View
+              className="bg-danger items-center justify-center"
+              style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 50, paddingTop: 44, paddingBottom: 8 }}
+              accessibilityRole="alert"
+            >
+              <Text className="text-white text-xs font-semibold">You're offline — some actions may not work</Text>
+            </View>
+          ) : null}
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="onboarding/index" />

@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, Image, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import { router } from "expo-router";
 import { MenuItem, VegFlag } from "../../types/domain";
 import { Card } from "../ui/Card";
+import { ImageWithFallback } from "../ui/ImageWithFallback";
 import { RatingPill } from "../ui/RatingPill";
 import { formatCurrency } from "../../lib/formatting/currency";
 import { useCartStore } from "../../store/cart-store";
@@ -47,7 +48,7 @@ export function FoodCard({ item }: { item: MenuItem }) {
     <Pressable onPress={onCardPress} accessibilityRole="button" style={{ width: CARD_WIDTH }}>
       <Card className="overflow-hidden">
         <View style={{ aspectRatio: 1 }}>
-          <Image source={{ uri: item.imageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          <ImageWithFallback uri={item.imageUrl} style={{ width: "100%", height: "100%" }} />
           {!item.isAvailable ? (
             <View className="absolute inset-0 bg-black/40 items-center justify-center">
               <Text className="text-white text-xs font-semibold">Unavailable</Text>

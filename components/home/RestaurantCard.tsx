@@ -1,10 +1,11 @@
 import React from "react";
-import { View, Text, Image, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
 import { Heart } from "lucide-react-native";
 import { Restaurant } from "../../types/domain";
 import { SEED_OFFERS } from "../../data/seed/offers";
 import { Card } from "../ui/Card";
+import { ImageWithFallback } from "../ui/ImageWithFallback";
 import { Badge } from "../ui/Badge";
 import { RatingPill } from "../ui/RatingPill";
 import { formatCurrency } from "../../lib/formatting/currency";
@@ -32,7 +33,7 @@ export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
     <Pressable onPress={onPress} accessibilityRole="button" style={{ width: CARD_WIDTH }}>
       <Card className="overflow-hidden">
         <View style={{ aspectRatio: 16 / 9 }}>
-          <Image source={{ uri: restaurant.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          <ImageWithFallback uri={restaurant.coverImageUrl} style={{ width: "100%", height: "100%" }} />
           <Pressable
             onPress={onToggleFavorite}
             accessibilityRole="button"

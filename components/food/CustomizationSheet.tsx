@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, Image, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import { Circle, CircleCheck, Square, SquareCheck, X, Clock, AlertTriangle } from "lucide-react-native";
 import { Badge } from "../ui/Badge";
+import { ImageWithFallback } from "../ui/ImageWithFallback";
 import { Button } from "../ui/Button";
 import { TextField } from "../ui/TextField";
 import { QuantityStepper } from "../ui/QuantityStepper";
@@ -91,7 +92,7 @@ export function CustomizationSheet({ item, restaurantIsOpen, topInset, bottomIns
     <View className="flex-1 bg-bg">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={{ width: "100%", aspectRatio: 4 / 3 }}>
-          <Image source={{ uri: item.imageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          <ImageWithFallback uri={item.imageUrl} style={{ width: "100%", height: "100%" }} />
           <Pressable
             onPress={onClose}
             accessibilityRole="button"

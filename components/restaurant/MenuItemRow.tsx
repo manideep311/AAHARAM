@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, Image, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import { router } from "expo-router";
 import { MenuItem, VegFlag } from "../../types/domain";
 import { RatingPill } from "../ui/RatingPill";
+import { ImageWithFallback } from "../ui/ImageWithFallback";
 import { QuantityStepper } from "../ui/QuantityStepper";
 import { formatCurrency } from "../../lib/formatting/currency";
 import { useCartStore } from "../../store/cart-store";
@@ -123,7 +124,7 @@ export function MenuItemRow({ item, restaurantIsOpen }: { item: MenuItem; restau
       </View>
       <View style={{ width: 110 }}>
         <View style={{ width: 110, height: 90, borderRadius: 12, overflow: "hidden", opacity: isDimmed ? 0.5 : 1 }}>
-          <Image source={{ uri: item.imageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          <ImageWithFallback uri={item.imageUrl} style={{ width: "100%", height: "100%" }} />
         </View>
         <View className="mt-2 items-center">{renderAddControl()}</View>
       </View>

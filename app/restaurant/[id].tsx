@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, Image, Pressable, TextInput, SectionList, ScrollView } from "react-native";
+import { View, Text, Pressable, TextInput, SectionList, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
@@ -10,6 +10,7 @@ import { MenuCategoryBar, MenuCategoryChip } from "../../components/restaurant/M
 import { MenuItemRow } from "../../components/restaurant/MenuItemRow";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { ImageWithFallback } from "../../components/ui/ImageWithFallback";
 import { RatingPill } from "../../components/ui/RatingPill";
 import { formatCurrency } from "../../lib/formatting/currency";
 import { MenuItem } from "../../types/domain";
@@ -192,7 +193,7 @@ export default function RestaurantDetailsScreen() {
         ListHeaderComponent={
           <View>
             <View style={{ width: "100%", aspectRatio: 16 / 9 }}>
-              <Image source={{ uri: restaurant.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+              <ImageWithFallback uri={restaurant.coverImageUrl} style={{ width: "100%", height: "100%" }} />
             </View>
 
             <View className="px-4 pb-3 pt-4">
