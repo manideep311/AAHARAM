@@ -23,3 +23,7 @@ export async function getMenuForRestaurant(restaurantId: string): Promise<{ cate
     items: SEED_MENU_ITEMS.filter((i) => i.restaurantId === restaurantId),
   });
 }
+
+export async function getMenuItemById(id: string): Promise<MenuItem | null> {
+  return delay(SEED_MENU_ITEMS.find((m) => m.id === id) ?? null);
+}
