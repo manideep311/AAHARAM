@@ -84,7 +84,7 @@ export function CustomizationSheet({ item, restaurantIsOpen, topInset, bottomIns
   } else if (missingRequiredGroup) {
     buttonLabel = "Select required options";
   } else {
-    buttonLabel = `Add to Cart · ${formatCurrency(totalPrice)}`;
+    buttonLabel = "Add to Cart";
   }
 
   return (
@@ -241,10 +241,14 @@ export function CustomizationSheet({ item, restaurantIsOpen, topInset, bottomIns
       </ScrollView>
 
       <View className="border-t border-border bg-card px-4 pt-3" style={{ paddingBottom: bottomInset + 12 }}>
+        <View className="mb-2 flex-row items-baseline justify-between">
+          <Text className="text-sm text-muted">Total ({quantity} {quantity === 1 ? "item" : "items"})</Text>
+          <Text className="text-lg font-bold text-ink">{formatCurrency(totalPrice)}</Text>
+        </View>
         <Button
           title={buttonLabel}
           disabled={!canAdd}
-          accessibilityLabel={buttonLabel}
+          accessibilityLabel={`${buttonLabel}, total ${formatCurrency(totalPrice)}`}
           onPress={() => onAddToCart(customization, quantity)}
           size="lg"
         />
