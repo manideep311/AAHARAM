@@ -27,7 +27,13 @@
       "expo-router",
       "expo-secure-store",
       "expo-status-bar",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow CRAVE to use your location to find restaurants and set your delivery address."
+        }
+      ]
     ]
   }
 }
