@@ -12,6 +12,7 @@ import { filterRestaurants } from "../../features/search/filters";
 import { getRecommendations } from "../../features/recommendations/recommend";
 import { useLocationStore } from "../../store/location-store";
 import { useAuthStore } from "../../store/auth-store";
+import { useNotificationsStore } from "../../store/notifications-store";
 import { useFavoritesStore } from "../../store/favorites-store";
 import { usePreferencesStore } from "../../store/preferences-store";
 import { Skeleton } from "../../components/ui/Skeleton";
@@ -57,6 +58,7 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const locationLabel = useLocationStore((s) => s.label);
   const user = useAuthStore((s) => s.user);
+  const unreadCount = useNotificationsStore((s) => s.unreadCount);
   const favoritesLoaded = useFavoritesStore((s) => s.loaded);
   const loadFavorites = useFavoritesStore((s) => s.load);
   const favoriteRestaurantIds = useFavoritesStore((s) => s.restaurantIds);
@@ -130,6 +132,11 @@ export default function Home() {
               hitSlop={8}
             >
               <Bell size={22} color={colors.ink} />
+              {unreadCount > 0 ? (
+                <View className="absolute top-0 right-0 min-w-[20px] items-center justify-center rounded-full bg-danger px-1.5 py-0.5">
+                  <Text className="text-xs font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                </View>
+              ) : null}
             </Pressable>
             <Pressable
               onPress={() => router.push("/(tabs)/profile")}
