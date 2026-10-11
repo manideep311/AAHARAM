@@ -8,6 +8,7 @@ web-build/
 ios/
 android/
 .superpowers/
+.claude/
 
 # Expo (from create-expo-app scaffold)
 expo-env.d.ts
