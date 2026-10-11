@@ -3,7 +3,7 @@ import { View, Text, FlatList, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { Bell, Search, CircleAlert } from "lucide-react-native";
+import { Bell, Search, CircleAlert, Sparkles } from "lucide-react-native";
 import { getRestaurants } from "../../services/restaurants";
 import { getOrders } from "../../services/orders";
 import { SEED_MENU_ITEMS } from "../../data/seed/menu-items";
@@ -15,6 +15,7 @@ import { useAuthStore } from "../../store/auth-store";
 import { useNotificationsStore } from "../../store/notifications-store";
 import { useFavoritesStore } from "../../store/favorites-store";
 import { usePreferencesStore } from "../../store/preferences-store";
+import { ASSISTANT_NAME } from "../../constants/brand";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { SectionHeader } from "../../components/ui/SectionHeader";
@@ -124,6 +125,15 @@ export default function Home() {
             </Text>
           </Pressable>
           <View className="flex-row items-center">
+            <Pressable
+              onPress={() => router.push("/assistant")}
+              className="p-2 mr-1"
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${ASSISTANT_NAME}, your food assistant`}
+              hitSlop={8}
+            >
+              <Sparkles size={22} color={colors.ink} />
+            </Pressable>
             <Pressable
               onPress={() => router.push("/notifications")}
               className="p-2 mr-1"
