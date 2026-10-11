@@ -4,6 +4,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r1",
     name: "Biryani Junction",
+    phone: "+91 98765 10100",
     cuisines: ["Biryani", "North Indian"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80",
@@ -21,6 +22,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r2",
     name: "Spice Route Chinese",
+    phone: "+91 98765 10200",
     cuisines: ["Chinese"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=800&q=80",
@@ -38,6 +40,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r3",
     name: "Napoli Wood-Fired Pizza",
+    phone: "+91 98765 10300",
     cuisines: ["Pizza", "Italian"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=800&q=80",
@@ -55,6 +58,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r4",
     name: "Burger Barn",
+    phone: "+91 98765 10400",
     cuisines: ["Burgers", "American"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80",
@@ -72,6 +76,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r5",
     name: "Udupi Grand",
+    phone: "+91 98765 10500",
     cuisines: ["South Indian"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80",
@@ -89,6 +94,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r6",
     name: "Punjabi Tadka",
+    phone: "+91 98765 10600",
     cuisines: ["North Indian"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80",
@@ -106,6 +112,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r7",
     name: "Sweet Treats Bakery",
+    phone: "+91 98765 10700",
     cuisines: ["Desserts", "Bakery"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?auto=format&fit=crop&w=800&q=80",
@@ -123,6 +130,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r8",
     name: "Chaat Street",
+    phone: "+91 98765 10800",
     cuisines: ["Street Food"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=800&q=80",
@@ -140,6 +148,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r9",
     name: "Green Bowl Healthy Kitchen",
+    phone: "+91 98765 10900",
     cuisines: ["Healthy", "Salads"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1512152272829-e3139592d56f?auto=format&fit=crop&w=800&q=80",
@@ -157,6 +166,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r10",
     name: "Chai & Chill",
+    phone: "+91 98765 11000",
     cuisines: ["Beverages", "Cafe"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80",
@@ -174,6 +184,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r11",
     name: "Dragon Wok",
+    phone: "+91 98765 11100",
     cuisines: ["Chinese", "Asian"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=80",
@@ -191,6 +202,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r12",
     name: "Hyderabadi House",
+    phone: "+91 98765 11200",
     cuisines: ["Biryani", "Andhra"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1576458088443-04a19bb13da6?auto=format&fit=crop&w=800&q=80",
@@ -208,6 +220,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r13",
     name: "Tandoori Nights",
+    phone: "+91 98765 11300",
     cuisines: ["North Indian", "Mughlai"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1540713434306-58505cf1b6fc?auto=format&fit=crop&w=800&q=80",
@@ -225,6 +238,7 @@ export const SEED_RESTAURANTS: Restaurant[] = [
   {
     id: "r14",
     name: "Dessert Dreams",
+    phone: "+91 98765 11400",
     cuisines: ["Desserts", "Ice Cream"],
     coverImageUrl:
       "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80",

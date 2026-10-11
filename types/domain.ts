@@ -54,6 +54,8 @@ export interface OperatingHours {
 export interface Restaurant {
   id: string;
   name: string;
+  /** Dev-seed contact number, shown on the tracking screen as a tappable tel: link. */
+  phone?: string;
   cuisines: string[];
   coverImageUrl: string;
   rating: number;
