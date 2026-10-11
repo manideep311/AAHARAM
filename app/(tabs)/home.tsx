@@ -5,12 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Bell, Search, CircleAlert } from "lucide-react-native";
 import { getRestaurants } from "../../services/restaurants";
+import { getOrders } from "../../services/orders";
 import { SEED_MENU_ITEMS } from "../../data/seed/menu-items";
 import { SEED_OFFERS } from "../../data/seed/offers";
 import { filterRestaurants } from "../../features/search/filters";
+import { getRecommendations } from "../../features/recommendations/recommend";
 import { useLocationStore } from "../../store/location-store";
 import { useAuthStore } from "../../store/auth-store";
 import { useFavoritesStore } from "../../store/favorites-store";
+import { usePreferencesStore } from "../../store/preferences-store";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { SectionHeader } from "../../components/ui/SectionHeader";
@@ -18,7 +21,7 @@ import { HorizontalCarousel } from "../../components/home/HorizontalCarousel";
 import { RestaurantCard } from "../../components/home/RestaurantCard";
 import { FoodCard } from "../../components/home/FoodCard";
 import { CategoryCard } from "../../components/home/CategoryCard";
-import { Restaurant, Offer } from "../../types/domain";
+import { Offer } from "../../types/domain";
 import { colors } from "../../constants/theme";
 
 const CUISINE_CATEGORIES = [
@@ -33,11 +36,6 @@ const CUISINE_CATEGORIES = [
   "Street Food",
   "Beverages",
 ];
-
-// Task 17 will replace this with the real recommendation engine (features/recommendations/recommend.ts).
-function getPopularFallback(restaurants: Restaurant[], limit = 8): Restaurant[] {
-  return [...restaurants].sort((a, b) => b.rating - a.rating).slice(0, limit);
-}
 
 function OfferCard({ offer }: { offer: Offer }) {
   return (
@@ -61,6 +59,8 @@ export default function Home() {
   const user = useAuthStore((s) => s.user);
   const favoritesLoaded = useFavoritesStore((s) => s.loaded);
   const loadFavorites = useFavoritesStore((s) => s.load);
+  const favoriteRestaurantIds = useFavoritesStore((s) => s.restaurantIds);
+  const preferences = usePreferencesStore((s) => s.preferences);
 
   useEffect(() => {
     if (!favoritesLoaded) loadFavorites();
@@ -74,6 +74,11 @@ export default function Home() {
   } = useQuery({
     queryKey: ["restaurants"],
     queryFn: getRestaurants,
+  });
+
+  const { data: orders } = useQuery({
+    queryKey: ["orders"],
+    queryFn: getOrders,
   });
 
   const popularNearYou = useMemo(
@@ -92,7 +97,18 @@ export default function Home() {
     () => (restaurants ? restaurants.filter((r) => r.etaMinutes <= 30) : []),
     [restaurants]
   );
-  const recommended = useMemo(() => (restaurants ? getPopularFallback(restaurants) : []), [restaurants]);
+  const recommendationGroups = useMemo(
+    () =>
+      restaurants
+        ? getRecommendations({
+            orders: orders ?? [],
+            favoriteRestaurantIds,
+            preferences,
+            restaurants,
+          })
+        : [],
+    [restaurants, orders, favoriteRestaurantIds, preferences]
+  );
   const trendingDishes = useMemo(() => SEED_MENU_ITEMS.filter((i) => i.popular), []);
 
   function renderHeader() {
@@ -211,12 +227,16 @@ export default function Home() {
               renderItem={({ item }) => <RestaurantCard restaurant={item} />}
             />
 
-            <SectionHeader title="Recommended for You" />
-            <HorizontalCarousel
-              data={recommended}
-              keyExtractor={(r) => r.id}
-              renderItem={({ item }) => <RestaurantCard restaurant={item} />}
-            />
+            {recommendationGroups.map((group) => (
+              <View key={group.reason}>
+                <SectionHeader title={group.reason} />
+                <HorizontalCarousel
+                  data={group.restaurants}
+                  keyExtractor={(r) => r.id}
+                  renderItem={({ item }) => <RestaurantCard restaurant={item} />}
+                />
+              </View>
+            ))}
           </>
         )}
       </View>
