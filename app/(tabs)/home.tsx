@@ -19,6 +19,7 @@ import { RestaurantCard } from "../../components/home/RestaurantCard";
 import { FoodCard } from "../../components/home/FoodCard";
 import { CategoryCard } from "../../components/home/CategoryCard";
 import { Restaurant, Offer } from "../../types/domain";
+import { colors } from "../../constants/theme";
 
 const CUISINE_CATEGORIES = [
   "Biryani",
@@ -112,7 +113,7 @@ export default function Home() {
               accessibilityLabel="Notifications"
               hitSlop={8}
             >
-              <Bell size={22} color="#202020" />
+              <Bell size={22} color={colors.ink} />
             </Pressable>
             <Pressable
               onPress={() => router.push("/(tabs)/profile")}
@@ -136,7 +137,7 @@ export default function Home() {
           accessibilityRole="button"
           className="mx-4 mb-5 flex-row items-center bg-card border border-border rounded-2xl px-4 py-3"
         >
-          <Search size={18} color="#777777" />
+          <Search size={18} color={colors.muted} />
           <Text className="text-muted text-sm ml-2">Search biryani, pizza, restaurants...</Text>
         </Pressable>
 

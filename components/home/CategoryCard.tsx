@@ -12,6 +12,7 @@ import {
   Coffee,
   LucideIcon,
 } from "lucide-react-native";
+import { colors } from "../../constants/theme";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Biryani: Soup,
@@ -36,7 +37,7 @@ export function CategoryCard({ name }: { name: string }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={{ width: 72 }}>
       <View className="bg-primary/10 rounded-2xl p-4 mb-1.5 items-center justify-center">
-        <Icon size={24} color="#FF5A36" />
+        <Icon size={24} color={colors.primary} />
       </View>
       <Text className="text-xs font-medium text-ink text-center" numberOfLines={1}>
         {name}

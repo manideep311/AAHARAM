@@ -7,21 +7,22 @@ import { Card } from "../ui/Card";
 import { RatingPill } from "../ui/RatingPill";
 import { formatCurrency } from "../../lib/formatting/currency";
 import { useCartStore } from "../../store/cart-store";
+import { colors } from "../../constants/theme";
 
 const CARD_WIDTH = 150;
 
 function VegIndicator({ vegFlag }: { vegFlag: VegFlag }) {
   if (vegFlag === "veg") {
-    return <View style={{ width: 11, height: 11, borderWidth: 1.5, borderColor: "#198754" }} />;
+    return <View style={{ width: 11, height: 11, borderWidth: 1.5, borderColor: colors.success }} />;
   }
   if (vegFlag === "unknown") {
     return null;
   }
-  // non-veg / egg: brown/maroon outlined triangle, per FSSAI convention
-  const strokeColor = vegFlag === "egg" ? "#B45309" : "#8B4513";
+  // non-veg / egg: outlined triangle (FSSAI-style shape distinction), colored with the
+  // existing "danger" design token rather than an invented hex value.
   return (
     <Svg width={12} height={12} viewBox="0 0 12 12">
-      <Polygon points="6,1 11,10.5 1,10.5" fill="none" stroke={strokeColor} strokeWidth={1.3} />
+      <Polygon points="6,1 11,10.5 1,10.5" fill="none" stroke={colors.danger} strokeWidth={1.3} />
     </Svg>
   );
 }

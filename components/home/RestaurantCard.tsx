@@ -9,6 +9,7 @@ import { Badge } from "../ui/Badge";
 import { RatingPill } from "../ui/RatingPill";
 import { formatCurrency } from "../../lib/formatting/currency";
 import { useFavoritesStore } from "../../store/favorites-store";
+import { colors } from "../../constants/theme";
 
 const CARD_WIDTH = 260;
 
@@ -39,7 +40,7 @@ export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
             hitSlop={8}
             className="absolute top-2 right-2 bg-white/90 rounded-full p-2"
           >
-            <Heart size={16} color="#FF5A36" fill={isFavorite ? "#FF5A36" : "transparent"} />
+            <Heart size={16} color={colors.primary} fill={isFavorite ? colors.primary : "transparent"} />
           </Pressable>
           {!restaurant.isOpen ? (
             <View className="absolute inset-0 bg-black/40 items-center justify-center">
