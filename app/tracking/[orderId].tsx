@@ -12,6 +12,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { formatOrderDate } from "../../lib/formatting/datetime";
 import { ORDER_STATUS_LABELS, isTerminalStatus, nextStatus } from "../../features/orders/status";
+import { useNotificationsStore } from "../../store/notifications-store";
 import { colors } from "../../constants/theme";
 
 const SIMULATION_INTERVAL_MS = 8000;
@@ -40,6 +41,8 @@ export default function TrackingScreen() {
   });
   const order = orderQuery.data;
 
+  const pushNotification = useNotificationsStore((s) => s.push);
+
   const restaurantQuery = useQuery({
     queryKey: ["restaurant", order?.restaurantId],
     queryFn: () => getRestaurantById(order!.restaurantId),
@@ -58,8 +61,8 @@ export default function TrackingScreen() {
   // ============================================================================================
   // SIMULATED STATUS PROGRESSION (dev-only -- there is no real courier or GPS behind this app).
   // This is the ONE place that advances an order's status over time. Task 18 hooks into this
-  // same tick to also push an in-app notification whenever the status changes -- so if you're
-  // extending this, the advance-and-refetch sequence below is the single spot to add that call.
+  // same tick to also push an in-app notification whenever the status changes, so notifications
+  // and tracking stay consistent.
   // ============================================================================================
   useEffect(() => {
     if (!orderId || !order) return;
@@ -75,7 +78,11 @@ export default function TrackingScreen() {
       advancing = true;
       try {
         await updateOrderStatus(orderId, next);
-        // <-- Task 18 extension point: fire an in-app notification for `next` here.
+        // Task 18 extension point: fire an in-app notification for `next` here.
+        pushNotification({
+          title: "Order Update",
+          body: `Your order from ${order.restaurantName} is ${ORDER_STATUS_LABELS[next].toLowerCase()}!`,
+        });
         if (mountedRef.current) await orderQuery.refetch();
       } finally {
         advancing = false;

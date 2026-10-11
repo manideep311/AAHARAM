@@ -1,12 +1,26 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, Switch, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { ArrowLeft } from "lucide-react-native";
 import { usePreferencesStore } from "../../store/preferences-store";
+import { useAuthStore } from "../../store/auth-store";
 import { SectionHeader } from "../../components/ui/SectionHeader";
 import { TextField } from "../../components/ui/TextField";
+import { Button } from "../../components/ui/Button";
 import { colors } from "../../constants/theme";
+
+// Inline schema, scoped to this screen only -- "Profile Details" is a small, local-only form
+// (no backend to persist to yet) so it doesn't warrant a shared lib/validation/schemas.ts entry.
+const profileDetailsSchema = z.object({
+  name: z.string().min(2, "Enter your name"),
+  phone: z.string().optional(),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+});
+type ProfileDetailsValues = z.infer<typeof profileDetailsSchema>;
 
 // Kept in sync with the categories shown on Home's cuisine carousel
 // (app/(tabs)/home.tsx) so "favorite cuisines" means the same thing everywhere.
@@ -52,16 +66,47 @@ function CuisineChip({ label, active, onPress }: { label: string; active: boolea
 /**
  * Profile editing screen.
  *
- * NOTE for future readers: this screen currently contains only the "Food
- * Preferences" section (Task 17). Task 18 adds a "Profile Details" section
- * (name/phone/email) ABOVE this one, inside the same ScrollView. Keep each
- * section wrapped in its own SectionHeader + View block so the two sections
- * stay visually and structurally independent.
+ * NOTE for future readers: this screen has two independent sections sharing one
+ * ScrollView -- "Profile Details" (Task 18: name/phone/email, saved via
+ * useAuthStore().setUser, session-only) and "Food Preferences" (Task 17: veg-only,
+ * cuisines, budget, saved via usePreferencesStore). Keep them structurally separate.
  */
 export default function EditProfile() {
   const insets = useSafeAreaInsets();
   const preferences = usePreferencesStore((s) => s.preferences);
   const setPreferences = usePreferencesStore((s) => s.setPreferences);
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+
+  const [savedJustNow, setSavedJustNow] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ProfileDetailsValues>({
+    resolver: zodResolver(profileDetailsSchema),
+    defaultValues: { name: user?.name ?? "", phone: user?.phone ?? "", email: user?.email ?? "" },
+  });
+
+  // Keep the form in sync if the underlying user object changes (e.g. after sign-in);
+  // doesn't fight with in-progress edits since it only depends on `user`, not on form state.
+  useEffect(() => {
+    reset({ name: user?.name ?? "", phone: user?.phone ?? "", email: user?.email ?? "" });
+  }, [user, reset]);
+
+  function onSaveProfileDetails(values: ProfileDetailsValues) {
+    if (!user) return;
+    setUser({
+      ...user,
+      name: values.name,
+      phone: values.phone?.trim() ? values.phone.trim() : undefined,
+      email: values.email?.trim() ? values.email.trim() : undefined,
+    });
+    setSavedJustNow(true);
+    setTimeout(() => setSavedJustNow(false), 2000);
+  }
 
   // Local text buffer for the budget field so the user can clear/retype
   // freely; only committed to the store as a number (or null) on change.
@@ -90,7 +135,61 @@ export default function EditProfile() {
     <View className="flex-1 bg-bg">
       <Header title="Edit Profile" topInset={insets.top} />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-        {/* Task 18 will insert a "Profile Details" section here. */}
+        <SectionHeader title="Profile Details" />
+        <View className="px-4">
+          <Controller
+            control={control}
+            name="name"
+            render={({ field }) => (
+              <TextField
+                label="Name"
+                placeholder="Your full name"
+                value={field.value}
+                onChangeText={field.onChange}
+                error={errors.name?.message}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field }) => (
+              <TextField
+                label="Phone Number"
+                placeholder="10-digit mobile number"
+                value={field.value}
+                onChangeText={field.onChange}
+                keyboardType="phone-pad"
+                maxLength={10}
+                error={errors.phone?.message}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="email"
+            render={({ field }) => (
+              <TextField
+                label="Email (optional)"
+                placeholder="you@example.com"
+                value={field.value}
+                onChangeText={field.onChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={errors.email?.message}
+              />
+            )}
+          />
+          <Button
+            title={savedJustNow ? "Saved!" : "Save"}
+            onPress={handleSubmit(onSaveProfileDetails)}
+            accessibilityLabel="Save profile details"
+            disabled={!user}
+          />
+          <Text className="mt-2 mb-1 text-xs text-muted">
+            Saved for this session only -- there's no account backend behind this yet.
+          </Text>
+        </View>
 
         <SectionHeader title="Food Preferences" />
         <View className="px-4">
