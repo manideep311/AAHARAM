@@ -14,6 +14,16 @@ function formatAddress(address: Location.LocationGeocodedAddress): string {
   return parts.length > 0 ? parts.join(", ") : "Current location";
 }
 
+const LOCATION_TIMEOUT_MS = 9000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
+
 export default function LocationSelect() {
   const setLabel = useLocationStore((s) => s.setLabel);
   const [status, setStatus] = useState<"requesting" | "granted" | "manual">("requesting");
@@ -32,11 +42,19 @@ export default function LocationSelect() {
         setStatus("manual");
         return;
       }
-      const position = await Location.getCurrentPositionAsync({});
-      const results = await Location.reverseGeocodeAsync({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
+      const position = await withTimeout(
+        Location.getCurrentPositionAsync({}),
+        LOCATION_TIMEOUT_MS,
+        "Timed out waiting for a GPS fix."
+      );
+      const results = await withTimeout(
+        Location.reverseGeocodeAsync({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }),
+        LOCATION_TIMEOUT_MS,
+        "Timed out resolving your address."
+      );
       const label = results[0] ? formatAddress(results[0]) : "Current location";
       setLabel(label);
       setStatus("granted");

@@ -18,6 +18,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
 
   async function onSendOtp() {
     const result = phoneSchema.safeParse(phone);
@@ -38,11 +39,14 @@ export default function Login() {
   }
 
   async function onContinueAsGuest() {
+    setGuestError(null);
     setGuestLoading(true);
     try {
       const user = await signInAsGuest();
       setUser(user);
       router.replace("/(tabs)/home");
+    } catch (e) {
+      setGuestError(e instanceof Error ? e.message : "Could not continue as guest. Try again.");
     } finally {
       setGuestLoading(false);
     }
@@ -79,6 +83,7 @@ export default function Login() {
             {guestLoading ? "Signing in..." : "Continue as Guest"}
           </Text>
         </Pressable>
+        {guestError ? <Text className="text-xs text-red-500 text-center mt-2">{guestError}</Text> : null}
       </View>
     </KeyboardAvoidingView>
   );
