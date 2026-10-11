@@ -5,7 +5,7 @@ import "react-native-gesture-handler";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { View, Text } from "react-native";
@@ -14,6 +14,26 @@ import { getCurrentUser } from "../services/auth";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 const queryClient = new QueryClient();
+
+// Lives inside SafeAreaProvider so it can read real safe-area insets (RootLayout
+// itself mounts the provider, so it can't call useSafeAreaInsets directly).
+function OfflineBanner({ isOnline }: { isOnline: boolean }) {
+  const insets = useSafeAreaInsets();
+
+  if (isOnline) {
+    return null;
+  }
+
+  return (
+    <View
+      className="bg-danger items-center justify-center"
+      style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 50, paddingTop: insets.top + 6, paddingBottom: 8 }}
+      accessibilityRole="alert"
+    >
+      <Text className="text-white text-xs font-semibold">You're offline — some actions may not work</Text>
+    </View>
+  );
+}
 
 export default function RootLayout() {
   const setUser = useAuthStore((s) => s.setUser);
@@ -33,15 +53,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="dark" />
-          {!isOnline ? (
-            <View
-              className="bg-danger items-center justify-center"
-              style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 50, paddingTop: 44, paddingBottom: 8 }}
-              accessibilityRole="alert"
-            >
-              <Text className="text-white text-xs font-semibold">You're offline — some actions may not work</Text>
-            </View>
-          ) : null}
+          <OfflineBanner isOnline={isOnline} />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="onboarding/index" />
