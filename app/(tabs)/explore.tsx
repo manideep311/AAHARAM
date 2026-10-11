@@ -7,6 +7,7 @@ import { Search, CircleAlert, SlidersHorizontal } from "lucide-react-native";
 import { getRestaurants } from "../../services/restaurants";
 import { SEED_MENU_ITEMS } from "../../data/seed/menu-items";
 import { filterRestaurants, RestaurantFilters } from "../../features/search/filters";
+import { usePreferencesStore } from "../../store/preferences-store";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { SectionHeader } from "../../components/ui/SectionHeader";
@@ -60,8 +61,13 @@ function FilterChip({ label, active, onPress }: { label: string; active: boolean
 
 export default function Explore() {
   const insets = useSafeAreaInsets();
-  const [vegOnly, setVegOnly] = useState(false);
+  const vegOnly = usePreferencesStore((s) => s.preferences.vegOnly);
+  const setPreferences = usePreferencesStore((s) => s.setPreferences);
   const [sortBy, setSortBy] = useState<SortOption>("relevance");
+
+  function toggleVegOnly() {
+    setPreferences({ vegOnly: !vegOnly });
+  }
 
   const {
     data: restaurants,
@@ -93,7 +99,7 @@ export default function Explore() {
   const hasActiveFilters = vegOnly || sortBy !== "relevance";
 
   function clearFilters() {
-    setVegOnly(false);
+    setPreferences({ vegOnly: false });
     setSortBy("relevance");
   }
 
@@ -142,7 +148,7 @@ export default function Explore() {
 
         <View className="px-4 mt-2 mb-3">
           <View className="flex-row flex-wrap">
-            <FilterChip label="Veg Only" active={vegOnly} onPress={() => setVegOnly((v) => !v)} />
+            <FilterChip label="Veg Only" active={vegOnly} onPress={toggleVegOnly} />
           </View>
           <View className="flex-row flex-wrap mt-1">
             {SORT_CHIPS.map((chip) => (
