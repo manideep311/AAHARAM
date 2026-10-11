@@ -43,8 +43,13 @@ const PROCESSING_DELAY_MS = 1500;
 
 export default function PaymentScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ clientRequestId?: string }>();
+  const params = useLocalSearchParams<{ clientRequestId?: string; instructions?: string }>();
   const clientRequestId = params.clientRequestId;
+  // Read-only display only -- this is the user's one-off note for THIS order, carried purely as
+  // a query string (like clientRequestId). It is never written back to the saved Address and
+  // never sent to createOrder (CreateOrderInput has no field for it); it is simply shown back to
+  // the user here as confirmation of what they typed, then dropped.
+  const deliveryInstructions = params.instructions;
 
   const restaurantId = useCartStore((s) => s.restaurantId);
   const lines = useCartStore((s) => s.lines);
@@ -246,6 +251,13 @@ export default function PaymentScreen() {
             <Text className="text-xl font-bold text-ink">{formatCurrency(total)}</Text>
           </View>
         </Card>
+
+        {deliveryInstructions ? (
+          <Card className="mb-4 p-4">
+            <Text className="text-xs font-semibold text-muted">Delivery Instructions for this order</Text>
+            <Text className="mt-1 text-sm text-ink">{deliveryInstructions}</Text>
+          </Card>
+        ) : null}
 
         {phase === "processing" ? (
           <Card className="mb-4 items-center p-6">

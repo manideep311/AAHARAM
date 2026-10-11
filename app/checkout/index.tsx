@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { ArrowLeft, AlertTriangle, ShoppingBag, MapPin, Smartphone, CreditCard, Landmark, Banknote, LucideIcon, Check } from "lucide-react-native";
 import { useCartStore } from "../../store/cart-store";
 import { useCheckoutSelectionStore } from "../../store/checkout-selection-store";
-import { getAddresses, saveAddress } from "../../services/addresses";
+import { getAddresses } from "../../services/addresses";
 import { getRestaurantById, getMenuForRestaurant } from "../../services/restaurants";
 import { validateCoupon } from "../../services/coupons";
 import { calculateCartTotals } from "../../lib/pricing/calculate";
@@ -107,8 +107,15 @@ export default function CheckoutScreen() {
 
   const resolvedAddress = addresses.find((a) => a.id === selectedAddressId) ?? null;
 
-  // Local draft of delivery instructions, seeded from the resolved address and re-seeded
-  // whenever the selected address itself changes (not on every keystroke/render).
+  // Purely local, transient draft for THIS checkout only -- intentionally never written back to
+  // the saved Address record. Seeded once from the address's saved note as a starting point (and
+  // re-seeded if the user switches to a different address), but editing it here must never mutate
+  // the user's permanent address-book entry: a one-off note like "leave with roommate today" is
+  // not safe to silently persist as a standing property of e.g. their "Home" address, since
+  // app/addresses/index.tsx permanently displays Address.instructions on that address's card.
+  // There's also no Order/CreateOrderInput field to carry it through to the order itself (a real
+  // data-model gap), so for now it is dropped if the user navigates away without placing the
+  // order, and otherwise only ever shown back to them, read-only, on the payment screen.
   const [instructionsDraft, setInstructionsDraft] = useState(resolvedAddress?.instructions ?? "");
   const seededAddressId = useRef<string | null>(null);
   useEffect(() => {
@@ -129,11 +136,13 @@ export default function CheckoutScreen() {
     if (!resolvedAddress || !restaurant || lines.length === 0 || placingOrder) return;
     setPlacingOrder(true);
     try {
+      // instructionsDraft is intentionally NOT persisted anywhere (see comment above its
+      // declaration) -- it's carried to the payment screen purely for read-only display, as a
+      // plain query string, exactly like clientRequestId. It is never written to the Address
+      // record and never sent to createOrder (CreateOrderInput has no field for it).
       const trimmed = instructionsDraft.trim();
-      if (trimmed !== (resolvedAddress.instructions ?? "")) {
-        await saveAddress({ ...resolvedAddress, instructions: trimmed || undefined });
-      }
-      router.push(`/checkout/payment?clientRequestId=${encodeURIComponent(clientRequestId)}`);
+      const instructionsQuery = trimmed ? `&instructions=${encodeURIComponent(trimmed)}` : "";
+      router.push(`/checkout/payment?clientRequestId=${encodeURIComponent(clientRequestId)}${instructionsQuery}`);
     } finally {
       setPlacingOrder(false);
     }
