@@ -124,6 +124,7 @@ export interface CartLineItem {
 }
 
 export type PaymentMethod = "upi" | "card" | "netbanking" | "cod";
+export type PaymentStatus = "paid_simulated" | "pending_cod" | "refunded_simulated";
 
 export type OrderStatus =
   | "placed"
