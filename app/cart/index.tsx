@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { ArrowLeft, AlertTriangle, ShoppingBag } from "lucide-react-native";
 import { useCartStore } from "../../store/cart-store";
+import { requireSignIn } from "../../features/auth/requireSignIn";
 import { getRestaurantById, getMenuForRestaurant } from "../../services/restaurants";
 import { validateCoupon } from "../../services/coupons";
 import { calculateCartTotals } from "../../lib/pricing/calculate";
@@ -186,7 +187,9 @@ export default function CartScreen() {
           disabled={belowMinOrder}
           size="lg"
           accessibilityLabel={belowMinOrder ? `Minimum order not met, add ${formatCurrency(shortfall)} more` : "Proceed to Checkout"}
-          onPress={() => router.push("/checkout")}
+          onPress={() => {
+            if (requireSignIn("/checkout")) router.push("/checkout");
+          }}
         />
       </View>
     </View>

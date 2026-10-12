@@ -17,6 +17,7 @@ import {
 import { useAuthStore } from "../../store/auth-store";
 import { useNotificationsStore } from "../../store/notifications-store";
 import { signOut } from "../../services/auth";
+import { requireSignIn } from "../../features/auth/requireSignIn";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { colors } from "../../constants/theme";
@@ -27,6 +28,7 @@ interface RowConfig {
   label: string;
   route: string;
   badgeCount?: number;
+  requiresAccount?: boolean;
 }
 
 function ProfileRow({ icon: Icon, label, onPress, badgeCount, tone }: { icon: LucideIcon; label: string; onPress: () => void; badgeCount?: number; tone?: "default" | "danger" }) {
@@ -83,7 +85,7 @@ export default function ProfileScreen() {
   }
 
   const rows: RowConfig[] = [
-    { key: "addresses", icon: MapPin, label: "Saved Addresses", route: "/addresses" },
+    { key: "addresses", icon: MapPin, label: "Saved Addresses", route: "/addresses", requiresAccount: true },
     { key: "orders", icon: ReceiptText, label: "Order History", route: "/(tabs)/orders" },
     { key: "favorites", icon: Heart, label: "Favorites", route: "/(tabs)/favorites" },
     { key: "preferences", icon: SlidersHorizontal, label: "Edit Profile & Preferences", route: "/profile/edit" },
@@ -100,7 +102,6 @@ export default function ProfileScreen() {
             <Text className="text-3xl font-bold text-white">{initials}</Text>
           </View>
           <Text className="mt-3 text-xl font-bold text-ink">{user?.name ?? "Guest"}</Text>
-          {user?.phone ? <Text className="mt-0.5 text-sm text-muted">{user.phone}</Text> : null}
           {user?.email ? <Text className="mt-0.5 text-sm text-muted">{user.email}</Text> : null}
         </View>
 
@@ -111,7 +112,11 @@ export default function ProfileScreen() {
               <Text className="mb-3 text-sm text-muted">
                 Sign in to save addresses, track orders, and keep your preferences across sessions.
               </Text>
-              <Button title="Sign In" onPress={() => router.push("/auth/login")} accessibilityLabel="Sign in" />
+              <Button
+                title="Sign In"
+                onPress={() => router.push("/auth/login?returnTo=%2F(tabs)%2Fprofile")}
+                accessibilityLabel="Sign in"
+              />
             </Card>
           </View>
         ) : null}
@@ -123,7 +128,10 @@ export default function ProfileScreen() {
               icon={row.icon}
               label={row.label}
               badgeCount={row.badgeCount}
-              onPress={() => router.push(row.route as any)}
+              onPress={() => {
+                if (row.requiresAccount && !requireSignIn(row.route)) return;
+                router.push(row.route as any);
+              }}
             />
           ))}
         </View>

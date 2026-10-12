@@ -11,6 +11,7 @@ import { Badge } from "../ui/Badge";
 import { RatingPill } from "../ui/RatingPill";
 import { formatCurrency } from "../../lib/formatting/currency";
 import { useFavoritesStore } from "../../store/favorites-store";
+import { requireSignIn } from "../../features/auth/requireSignIn";
 import { colors } from "../../constants/theme";
 
 const CARD_WIDTH = 260;
@@ -24,6 +25,7 @@ export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
   }
 
   function onToggleFavorite() {
+    if (!requireSignIn("/(tabs)/favorites")) return;
     toggleRestaurant(restaurant.id);
   }
 

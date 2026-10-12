@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as Location from "expo-location";
 import { MapPin } from "lucide-react-native";
 import { TextField } from "../../components/ui/TextField";
 import { Button } from "../../components/ui/Button";
 import { useLocationStore } from "../../store/location-store";
+import { useAuthStore } from "../../store/auth-store";
+import { updateProfileName } from "../../services/auth";
 import { colors } from "../../constants/theme";
 
 function formatAddress(address: Location.LocationGeocodedAddress): string {
@@ -26,14 +28,46 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 }
 
 export default function LocationSelect() {
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const needsName = !!user && !user.isGuest && !user.name.trim();
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
+
   const setLabel = useLocationStore((s) => s.setLabel);
   const [status, setStatus] = useState<"requesting" | "granted" | "manual">("requesting");
   const [manualLabel, setManualLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  function finish() {
+    router.replace((returnTo ?? "/(tabs)/home") as any);
+  }
+
+  async function onSaveName() {
+    const trimmed = nameDraft.trim();
+    if (trimmed.length < 2) {
+      setNameError("Enter your name");
+      return;
+    }
+    if (!user) return;
+    setSavingName(true);
+    setNameError(null);
+    try {
+      await updateProfileName(user.id, trimmed);
+      setUser({ ...user, name: trimmed });
+    } catch (e) {
+      setNameError(e instanceof Error ? e.message : "Couldn't save your name. Try again.");
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  // Location detection starts only once the (one-time) name step is done.
   useEffect(() => {
-    requestLocation();
-  }, []);
+    if (!needsName) requestLocation();
+  }, [needsName]);
 
   async function requestLocation() {
     setStatus("requesting");
@@ -59,7 +93,7 @@ export default function LocationSelect() {
       const label = results[0] ? formatAddress(results[0]) : "Current location";
       setLabel(label);
       setStatus("granted");
-      router.replace("/(tabs)/home");
+      finish();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not detect your location.");
       setStatus("manual");
@@ -69,11 +103,28 @@ export default function LocationSelect() {
   function onSaveManual() {
     const trimmed = manualLabel.trim();
     setLabel(trimmed.length > 0 ? trimmed : "My location");
-    router.replace("/(tabs)/home");
+    finish();
   }
 
   function onSkip() {
-    router.replace("/(tabs)/home");
+    finish();
+  }
+
+  if (needsName) {
+    return (
+      <View className="flex-1 bg-bg px-6 justify-center">
+        <Text className="text-2xl font-bold text-ink mb-1">What should we call you?</Text>
+        <Text className="text-base text-muted mb-6">This is shown on your profile and orders.</Text>
+        <TextField
+          label="Your name"
+          placeholder="e.g. Asha Rao"
+          value={nameDraft}
+          onChangeText={setNameDraft}
+          error={nameError ?? undefined}
+        />
+        <Button title="Continue" onPress={onSaveName} loading={savingName} size="lg" />
+      </View>
+    );
   }
 
   if (status === "requesting") {

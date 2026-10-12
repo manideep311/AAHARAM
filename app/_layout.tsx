@@ -10,7 +10,8 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { View, Text } from "react-native";
 import { useAuthStore } from "../store/auth-store";
-import { getCurrentUser } from "../services/auth";
+import { getCurrentUser, userFromSession } from "../services/auth";
+import { supabase } from "../lib/supabase";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 const queryClient = new QueryClient();
@@ -41,11 +42,33 @@ export default function RootLayout() {
   const { isOnline } = useNetworkStatus();
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const user = await getCurrentUser();
+      const user = await getCurrentUser().catch(() => null);
+      if (cancelled) return;
       setUser(user);
       setHydrated();
     })();
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        if (!useAuthStore.getState().user?.isGuest) setUser(null);
+        queryClient.clear();
+        return;
+      }
+      if ((event === "SIGNED_IN" || event === "USER_UPDATED") && session) {
+        // supabase-js warns against awaiting Supabase calls inside this callback (it can
+        // deadlock the auth lock), so the profile fetch is deferred to the next tick.
+        setTimeout(() => {
+          userFromSession(session).then(setUser).catch(() => undefined);
+        }, 0);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.subscription.unsubscribe();
+    };
   }, []);
 
   return (

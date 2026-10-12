@@ -9,6 +9,7 @@ import { OrderCard } from "../../components/orders/OrderCard";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { isTerminalStatus } from "../../features/orders/status";
+import { useAuthStore } from "../../store/auth-store";
 import { Order } from "../../types/domain";
 import { colors } from "../../constants/theme";
 
@@ -16,8 +17,10 @@ type Row = { kind: "section"; key: string; title: string } | { kind: "order"; ke
 
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
+  const user = useAuthStore((s) => s.user);
+  const isGuest = !user || user.isGuest;
 
-  const ordersQuery = useQuery({ queryKey: ["orders"], queryFn: getOrders });
+  const ordersQuery = useQuery({ queryKey: ["orders"], queryFn: getOrders, enabled: !isGuest });
   const orders = ordersQuery.data ?? [];
 
   const { active, previous } = useMemo(() => {
@@ -41,6 +44,21 @@ export default function OrdersScreen() {
     }
     return result;
   }, [active, previous]);
+
+  if (isGuest) {
+    return (
+      <View className="flex-1 bg-bg" style={{ paddingTop: insets.top }}>
+        <Text className="px-4 pt-3 pb-2 text-xl font-bold text-ink">Your Orders</Text>
+        <EmptyState
+          icon={ReceiptText}
+          title="Sign in to see your orders"
+          description="Your order history and live tracking appear here once you're signed in."
+          actionLabel="Sign in"
+          onAction={() => router.push("/auth/login?returnTo=%2F(tabs)%2Forders")}
+        />
+      </View>
+    );
+  }
 
   if (ordersQuery.isLoading) {
     return (

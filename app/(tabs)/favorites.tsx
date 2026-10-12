@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Heart, UtensilsCrossed } from "lucide-react-native";
 import { useFavoritesStore } from "../../store/favorites-store";
+import { useAuthStore } from "../../store/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { getRestaurants, getAllMenuItems } from "../../services/restaurants";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -29,6 +30,7 @@ function SegmentButton({ label, active, onPress }: { label: string; active: bool
 export default function Favorites() {
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState<Segment>("restaurants");
+  const user = useAuthStore((s) => s.user);
 
   const loaded = useFavoritesStore((s) => s.loaded);
   const load = useFavoritesStore((s) => s.load);
@@ -53,6 +55,21 @@ export default function Favorites() {
 
   function browse() {
     router.push("/(tabs)/explore");
+  }
+
+  if (!user || user.isGuest) {
+    return (
+      <View className="flex-1 bg-bg" style={{ paddingTop: insets.top }}>
+        <Text className="px-4 pt-3 pb-4 text-xl font-bold text-ink">Favorites</Text>
+        <EmptyState
+          icon={Heart}
+          title="Sign in to save favorites"
+          description="Tap the heart on any restaurant to keep it here."
+          actionLabel="Sign in"
+          onAction={() => router.push("/auth/login?returnTo=%2F(tabs)%2Ffavorites")}
+        />
+      </View>
+    );
   }
 
   function renderHeader() {

@@ -8,17 +8,15 @@ import { z } from "zod";
 import { ArrowLeft } from "lucide-react-native";
 import { usePreferencesStore } from "../../store/preferences-store";
 import { useAuthStore } from "../../store/auth-store";
+import { updateProfileName } from "../../services/auth";
 import { SectionHeader } from "../../components/ui/SectionHeader";
 import { TextField } from "../../components/ui/TextField";
 import { Button } from "../../components/ui/Button";
 import { colors } from "../../constants/theme";
 
-// Inline schema, scoped to this screen only -- "Profile Details" is a small, local-only form
-// (no backend to persist to yet) so it doesn't warrant a shared lib/validation/schemas.ts entry.
+// Only the display name is editable; the email is the sign-in identity and is read-only.
 const profileDetailsSchema = z.object({
-  name: z.string().min(2, "Enter your name"),
-  phone: z.string().optional(),
-  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  name: z.string().trim().min(2, "Enter your name"),
 });
 type ProfileDetailsValues = z.infer<typeof profileDetailsSchema>;
 
@@ -79,6 +77,8 @@ export default function EditProfile() {
   const setUser = useAuthStore((s) => s.setUser);
 
   const [savedJustNow, setSavedJustNow] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const isGuest = !user || user.isGuest;
 
   const {
     control,
@@ -87,25 +87,26 @@ export default function EditProfile() {
     formState: { errors },
   } = useForm<ProfileDetailsValues>({
     resolver: zodResolver(profileDetailsSchema),
-    defaultValues: { name: user?.name ?? "", phone: user?.phone ?? "", email: user?.email ?? "" },
+    defaultValues: { name: user?.name ?? "" },
   });
 
   // Keep the form in sync if the underlying user object changes (e.g. after sign-in);
   // doesn't fight with in-progress edits since it only depends on `user`, not on form state.
   useEffect(() => {
-    reset({ name: user?.name ?? "", phone: user?.phone ?? "", email: user?.email ?? "" });
+    reset({ name: user?.name ?? "" });
   }, [user, reset]);
 
-  function onSaveProfileDetails(values: ProfileDetailsValues) {
-    if (!user) return;
-    setUser({
-      ...user,
-      name: values.name,
-      phone: values.phone?.trim() ? values.phone.trim() : undefined,
-      email: values.email?.trim() ? values.email.trim() : undefined,
-    });
-    setSavedJustNow(true);
-    setTimeout(() => setSavedJustNow(false), 2000);
+  async function onSaveProfileDetails(values: ProfileDetailsValues) {
+    if (!user || user.isGuest) return;
+    setSaveError(null);
+    try {
+      await updateProfileName(user.id, values.name);
+      setUser({ ...user, name: values.name });
+      setSavedJustNow(true);
+      setTimeout(() => setSavedJustNow(false), 2000);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Couldn't save. Try again.");
+    }
   }
 
   // Local text buffer for the budget field so the user can clear/retype
@@ -137,58 +138,40 @@ export default function EditProfile() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <SectionHeader title="Profile Details" />
         <View className="px-4">
-          <Controller
-            control={control}
-            name="name"
-            render={({ field }) => (
-              <TextField
-                label="Name"
-                placeholder="Your full name"
-                value={field.value}
-                onChangeText={field.onChange}
-                error={errors.name?.message}
+          {isGuest ? (
+            <View className="mb-1 rounded-2xl border border-border bg-card p-4">
+              <Text className="text-sm text-muted mb-3">Sign in to save your name to your account.</Text>
+              <Button
+                title="Sign In"
+                onPress={() => router.push("/auth/login?returnTo=%2Fprofile%2Fedit")}
+                accessibilityLabel="Sign in"
               />
-            )}
-          />
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field }) => (
-              <TextField
-                label="Phone Number"
-                placeholder="10-digit mobile number"
-                value={field.value}
-                onChangeText={field.onChange}
-                keyboardType="phone-pad"
-                maxLength={10}
-                error={errors.phone?.message}
+            </View>
+          ) : (
+            <>
+              <Controller
+                control={control}
+                name="name"
+                render={({ field }) => (
+                  <TextField
+                    label="Name"
+                    placeholder="Your full name"
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    error={errors.name?.message}
+                  />
+                )}
               />
-            )}
-          />
-          <Controller
-            control={control}
-            name="email"
-            render={({ field }) => (
-              <TextField
-                label="Email (optional)"
-                placeholder="you@example.com"
-                value={field.value}
-                onChangeText={field.onChange}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={errors.email?.message}
+              <Text className="mb-1 text-xs font-semibold text-muted">Email</Text>
+              <Text className="mb-4 text-base text-ink">{user?.email ?? "-"}</Text>
+              <Button
+                title={savedJustNow ? "Saved!" : "Save"}
+                onPress={handleSubmit(onSaveProfileDetails)}
+                accessibilityLabel="Save profile details"
               />
-            )}
-          />
-          <Button
-            title={savedJustNow ? "Saved!" : "Save"}
-            onPress={handleSubmit(onSaveProfileDetails)}
-            accessibilityLabel="Save profile details"
-            disabled={!user}
-          />
-          <Text className="mt-2 mb-1 text-xs text-muted">
-            Saved for this session only -- there's no account backend behind this yet.
-          </Text>
+              {saveError ? <Text className="mt-2 text-xs text-danger">{saveError}</Text> : null}
+            </>
+          )}
         </View>
 
         <SectionHeader title="Food Preferences" />
