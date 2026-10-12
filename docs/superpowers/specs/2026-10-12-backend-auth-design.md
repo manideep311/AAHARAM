@@ -126,7 +126,7 @@ Function names and signatures are preserved except where noted; screens change o
 
 | Service | New implementation |
 |---|---|
-| `restaurants.getRestaurants / getRestaurantById / getMenuForRestaurant / getMenuItemById` | `supabase.from(...)` selects, mapped snake_case → domain camelCase by `services/mappers.ts`. Simulated latency removed. |
+| `restaurants.getRestaurants / getRestaurantById / getMenuForRestaurant / getMenuItemById` | `supabase.from(...)` selects, mapped snake_case → domain camelCase by `supabase/functions/_shared/mappers.ts`. Simulated latency removed. |
 | `restaurants.getAllMenuItems()` (new) | Replaces direct `SEED_MENU_ITEMS` imports in `home.tsx`, `explore.tsx`, `favorites.tsx`. |
 | `offers.getOffers()` (new file) | Replaces direct `SEED_OFFERS` imports in `home.tsx`, `restaurant/[id].tsx`, `RestaurantCard.tsx` (card receives offers via props/query instead of importing seed). |
 | `search.searchAll(query)` | Calls SQL function `search_catalog(q text)` (security invoker, `ilike` over restaurant name, `array_to_string(cuisines)`, item name/description; items limited to open restaurants — preserving Sub-project 1's rule). |
@@ -165,7 +165,7 @@ Rules for `_shared`: no imports outside `_shared`; relative imports use explicit
 
 ## 6. Edge Functions
 
-Both functions: Deno, `verify_jwt = true` (default), CORS headers for completeness, Zod input validation (`npm:zod`), a user-scoped client (from the request's `Authorization` header) to identify the caller, and a service-role client (`SUPABASE_SERVICE_ROLE_KEY`, available automatically in hosted functions) for privileged reads/writes.
+Both functions: Deno, `verify_jwt = false` with the caller verified in code via `auth.getUser(token)` (works with both legacy and new API keys), CORS headers for completeness, Zod input validation (`npm:zod`), and a service-role client (`SUPABASE_SERVICE_ROLE_KEY`, or the first entry of `SUPABASE_SECRET_KEYS`, both provided automatically in hosted functions) for privileged reads/writes.
 
 Error response shape for every failure: HTTP status + `{ "error": { "code": string, "message": string, "details"?: object } }`.
 
@@ -225,13 +225,13 @@ Body `{ orderId }`. Loads the order with `user_id = caller` (`NOT_FOUND`); if st
 
 ## 8. Seed data
 
-`scripts/generate-seed-sql.ts` (run with `npx tsx`) reads the existing TypeScript seed arrays (`SEED_RESTAURANTS`, `SEED_CATEGORIES`, `SEED_MENU_ITEMS`, `SEED_OFFERS`, `SEED_COUPONS`) and writes `supabase/seed.sql` (idempotent `insert … on conflict (id) do update`). The TS seed files remain the single source of truth for the catalog; `seed.sql` is committed and regenerated whenever they change. A Jest test asserts `seed.sql` is up to date with the TS seed (regenerate-and-compare). `SEED_ADDRESSES` and `SEED_ORDERS` are no longer used by the app (kept only if tests still reference them; otherwise deleted).
+`scripts/generate-seed-sql.ts` (run with `npx tsx`) reads the existing TypeScript seed arrays (`SEED_RESTAURANTS`, `SEED_CATEGORIES`, `SEED_MENU_ITEMS`, `SEED_OFFERS`, `SEED_COUPONS`) and writes `supabase/seed.sql` (idempotent `insert … on conflict (id) do update`). The TS seed files remain the single source of truth for the catalog; `seed.sql` is committed and regenerated whenever they change. A Jest test asserts `seed.sql` is up to date with the TS seed (regenerate-and-compare). `data/seed/addresses.ts` and `data/seed/orders.ts` are deleted. Valid seed coupons now expire 2027-12-31.
 
 ## 9. Repository layout (new/changed)
 
 ```
 supabase/
-  config.toml                          # functions: place-order, cancel-order (verify_jwt = true)
+  config.toml                          # functions: place-order, cancel-order (verify_jwt = false; verified in code)
   migrations/
     <ts>_catalog.sql                   # catalog tables + RLS
     <ts>_users.sql                     # profiles, addresses, favorites, profile trigger, set_default_address + RLS
@@ -240,12 +240,13 @@ supabase/
     <ts>_search.sql                    # search_catalog()
   seed.sql                             # generated
   functions/
-    _shared/{domain,pricing,coupons,place-order-core}.ts
+    _shared/{domain,pricing,coupons,mappers,order-errors,place-order-core}.ts
+    _server/{http,clients}.ts            # Deno-only helpers
     place-order/index.ts
     cancel-order/index.ts
 lib/supabase.ts
 lib/secure-chunked-storage.ts
-services/{mappers,offers,notifications}.ts            # new
+services/{offers,notifications,order-errors}.ts      # new
 services/{auth,restaurants,search,coupons,addresses,favorites,orders}.ts   # rewritten internals
 features/auth/requireSignIn.ts
 hooks/{useRealtimeSync,useNotifications}.ts
