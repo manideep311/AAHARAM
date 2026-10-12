@@ -1,0 +1,15 @@
+# Supabase CLI config for the hosted AAHARAM project. Only settings this project relies on
+# are listed; the CLI fills in defaults for everything else.
+project_id = "aaharam"
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+# Both functions verify the caller themselves with auth.getUser(token), which works with
+# legacy JWT keys and the newer publishable/secret keys alike.
+[functions.place-order]
+verify_jwt = false
+
+[functions.cancel-order]
+verify_jwt = false
