@@ -1,29 +1,40 @@
-import { SEED_RESTAURANTS } from "../data/seed/restaurants";
-import { SEED_CATEGORIES } from "../data/seed/categories";
-import { SEED_MENU_ITEMS } from "../data/seed/menu-items";
-import { Restaurant, MenuCategory, MenuItem } from "../types/domain";
-
-const SIMULATED_LATENCY_MS = 250;
-
-function delay<T>(value: T): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), SIMULATED_LATENCY_MS));
-}
+import { supabase } from "../lib/supabase";
+import { MenuCategory, MenuItem, Restaurant } from "../types/domain";
+import { menuCategoryFromRow, menuItemFromRow, restaurantFromRow } from "../supabase/functions/_shared/mappers";
 
 export async function getRestaurants(): Promise<Restaurant[]> {
-  return delay(SEED_RESTAURANTS);
+  const { data, error } = await supabase.from("restaurants").select("*").order("rating_count", { ascending: false });
+  if (error) throw error;
+  return data.map(restaurantFromRow);
 }
 
 export async function getRestaurantById(id: string): Promise<Restaurant | null> {
-  return delay(SEED_RESTAURANTS.find((r) => r.id === id) ?? null);
+  const { data, error } = await supabase.from("restaurants").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? restaurantFromRow(data) : null;
 }
 
 export async function getMenuForRestaurant(restaurantId: string): Promise<{ categories: MenuCategory[]; items: MenuItem[] }> {
-  return delay({
-    categories: SEED_CATEGORIES.filter((c) => c.restaurantId === restaurantId).sort((a, b) => a.sortOrder - b.sortOrder),
-    items: SEED_MENU_ITEMS.filter((i) => i.restaurantId === restaurantId),
-  });
+  const [categoriesRes, itemsRes] = await Promise.all([
+    supabase.from("menu_categories").select("*").eq("restaurant_id", restaurantId).order("sort_order"),
+    supabase.from("menu_items").select("*").eq("restaurant_id", restaurantId).order("name"),
+  ]);
+  if (categoriesRes.error) throw categoriesRes.error;
+  if (itemsRes.error) throw itemsRes.error;
+  return { categories: categoriesRes.data.map(menuCategoryFromRow), items: itemsRes.data.map(menuItemFromRow) };
 }
 
 export async function getMenuItemById(id: string): Promise<MenuItem | null> {
-  return delay(SEED_MENU_ITEMS.find((m) => m.id === id) ?? null);
+  const { data, error } = await supabase.from("menu_items").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? menuItemFromRow(data) : null;
+}
+
+export async function getAllMenuItems(): Promise<MenuItem[]> {
+  const { data, error } = await supabase
+    .from("menu_items")
+    .select("*")
+    .order("rating", { ascending: false, nullsFirst: false });
+  if (error) throw error;
+  return data.map(menuItemFromRow);
 }

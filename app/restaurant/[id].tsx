@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Search as SearchIcon, X, Clock, AlertTriangle, UtensilsCrossed, ShoppingCart } from "lucide-react-native";
 import { getRestaurantById, getMenuForRestaurant } from "../../services/restaurants";
-import { SEED_OFFERS } from "../../data/seed/offers";
+import { getOffers } from "../../services/offers";
 import { MenuCategoryBar, MenuCategoryChip } from "../../components/restaurant/MenuCategoryBar";
 import { MenuItemRow } from "../../components/restaurant/MenuItemRow";
 import { Skeleton } from "../../components/ui/Skeleton";
@@ -116,7 +116,8 @@ export default function RestaurantDetailsScreen() {
     });
   }
 
-  const offers = restaurantId ? SEED_OFFERS.filter((o) => o.restaurantId === restaurantId) : [];
+  const offersQuery = useQuery({ queryKey: ["offers"], queryFn: getOffers });
+  const offers = (offersQuery.data ?? []).filter((o) => o.restaurantId === restaurantId);
 
   const isLoading = restaurantQuery.isLoading || menuQuery.isLoading;
   const isError = restaurantQuery.isError || menuQuery.isError;

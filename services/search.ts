@@ -1,23 +1,15 @@
-import { SEED_RESTAURANTS } from "../data/seed/restaurants";
-import { SEED_MENU_ITEMS } from "../data/seed/menu-items";
-import { Restaurant, MenuItem } from "../types/domain";
+import { supabase } from "../lib/supabase";
+import { MenuItem, Restaurant } from "../types/domain";
+import { menuItemFromRow, MenuItemRow, restaurantFromRow, RestaurantRow } from "../supabase/functions/_shared/mappers";
 
+// search_catalog (SQL) excludes dishes from closed restaurants, matching the defense-in-depth
+// rule from Sub-project 1: place-order's isOpen check is authoritative, but closed
+// restaurants' dishes shouldn't surface as addable results in the first place.
 export async function searchAll(query: string): Promise<{ restaurants: Restaurant[]; items: MenuItem[] }> {
-  const q = query.trim().toLowerCase();
+  const q = query.trim();
   if (!q) return { restaurants: [], items: [] };
-
-  const restaurants = SEED_RESTAURANTS.filter(
-    (r) => r.name.toLowerCase().includes(q) || r.cuisines.some((c) => c.toLowerCase().includes(q))
-  );
-  // Defense-in-depth: createOrder's isOpen check is the authoritative guard against ordering from
-  // a closed restaurant, but there's no reason to let a closed restaurant's dishes surface here as
-  // addable results in the first place.
-  const openRestaurantIds = new Set(SEED_RESTAURANTS.filter((r) => r.isOpen).map((r) => r.id));
-  const items = SEED_MENU_ITEMS.filter(
-    (i) =>
-      (i.name.toLowerCase().includes(q) || i.description.toLowerCase().includes(q)) &&
-      openRestaurantIds.has(i.restaurantId)
-  );
-
-  return { restaurants, items };
+  const { data, error } = await supabase.rpc("search_catalog", { q });
+  if (error) throw error;
+  const result = data as { restaurants: RestaurantRow[]; items: MenuItemRow[] };
+  return { restaurants: result.restaurants.map(restaurantFromRow), items: result.items.map(menuItemFromRow) };
 }

@@ -4,8 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Heart, UtensilsCrossed } from "lucide-react-native";
 import { useFavoritesStore } from "../../store/favorites-store";
-import { SEED_RESTAURANTS } from "../../data/seed/restaurants";
-import { SEED_MENU_ITEMS } from "../../data/seed/menu-items";
+import { useQuery } from "@tanstack/react-query";
+import { getRestaurants, getAllMenuItems } from "../../services/restaurants";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { RestaurantCard } from "../../components/home/RestaurantCard";
 import { FoodCard } from "../../components/home/FoodCard";
@@ -39,13 +39,16 @@ export default function Favorites() {
     if (!loaded) load();
   }, [loaded, load]);
 
+  const { data: restaurants } = useQuery({ queryKey: ["restaurants"], queryFn: getRestaurants });
+  const { data: allMenuItems } = useQuery({ queryKey: ["menu-items"], queryFn: getAllMenuItems });
+
   const favoriteRestaurants = useMemo(
-    () => SEED_RESTAURANTS.filter((r) => restaurantIds.includes(r.id)),
-    [restaurantIds]
+    () => (restaurants ?? []).filter((r) => restaurantIds.includes(r.id)),
+    [restaurants, restaurantIds]
   );
   const favoriteDishes = useMemo(
-    () => SEED_MENU_ITEMS.filter((i) => menuItemIds.includes(i.id)),
-    [menuItemIds]
+    () => (allMenuItems ?? []).filter((i) => menuItemIds.includes(i.id)),
+    [allMenuItems, menuItemIds]
   );
 
   function browse() {

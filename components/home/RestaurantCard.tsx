@@ -3,7 +3,8 @@ import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
 import { Heart } from "lucide-react-native";
 import { Restaurant } from "../../types/domain";
-import { SEED_OFFERS } from "../../data/seed/offers";
+import { useQuery } from "@tanstack/react-query";
+import { getOffers } from "../../services/offers";
 import { Card } from "../ui/Card";
 import { ImageWithFallback } from "../ui/ImageWithFallback";
 import { Badge } from "../ui/Badge";
@@ -26,7 +27,9 @@ export function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
     toggleRestaurant(restaurant.id);
   }
 
-  const offer = SEED_OFFERS.find((o) => o.restaurantId === restaurant.id);
+  // Every card shares the ["offers"] query, so this is one network request app-wide.
+  const { data: offers } = useQuery({ queryKey: ["offers"], queryFn: getOffers });
+  const offer = offers?.find((o) => o.restaurantId === restaurant.id);
   const badgeLabel = offer?.title ?? restaurant.tags[0];
 
   return (

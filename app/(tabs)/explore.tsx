@@ -4,8 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Search, CircleAlert, SlidersHorizontal } from "lucide-react-native";
-import { getRestaurants } from "../../services/restaurants";
-import { SEED_MENU_ITEMS } from "../../data/seed/menu-items";
+import { getRestaurants, getAllMenuItems } from "../../services/restaurants";
 import { filterRestaurants, RestaurantFilters } from "../../features/search/filters";
 import { usePreferencesStore } from "../../store/preferences-store";
 import { Skeleton } from "../../components/ui/Skeleton";
@@ -16,7 +15,7 @@ import { HorizontalCarousel } from "../../components/home/HorizontalCarousel";
 import { RestaurantCard } from "../../components/home/RestaurantCard";
 import { FoodCard } from "../../components/home/FoodCard";
 import { CategoryCard } from "../../components/home/CategoryCard";
-import { Restaurant } from "../../types/domain";
+import { MenuItem, Restaurant } from "../../types/domain";
 import { colors } from "../../constants/theme";
 
 const CUISINE_CATEGORIES = [
@@ -45,8 +44,8 @@ const SORT_CHIPS: { key: SortOption; label: string }[] = [
 // non-veg or egg. Restaurant-level veg-only filtering isn't a field on
 // Restaurant itself, so it's derived from menu items here rather than inside
 // the shared filterRestaurants() helper (see features/search/filters.ts).
-function isPureVegRestaurant(restaurantId: string): boolean {
-  return !SEED_MENU_ITEMS.some(
+function isPureVegRestaurant(restaurantId: string, menuItems: MenuItem[]): boolean {
+  return !menuItems.some(
     (item) => item.restaurantId === restaurantId && (item.vegFlag === "non-veg" || item.vegFlag === "egg")
   );
 }
@@ -78,23 +77,25 @@ export default function Explore() {
     queryKey: ["restaurants"],
     queryFn: getRestaurants,
   });
+  const { data: allMenuItems } = useQuery({ queryKey: ["menu-items"], queryFn: getAllMenuItems });
+  const menuItems = useMemo(() => allMenuItems ?? [], [allMenuItems]);
 
   const popularDishes = useMemo(
     () =>
-      [...SEED_MENU_ITEMS]
+      [...menuItems]
         .filter((i) => i.isAvailable)
         .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
         .slice(0, 10),
-    []
+    [menuItems]
   );
 
   const filteredRestaurants = useMemo(() => {
     if (!restaurants) return [];
     const filters: RestaurantFilters = { sortBy };
     let result = filterRestaurants(restaurants, filters);
-    if (vegOnly) result = result.filter((r) => isPureVegRestaurant(r.id));
+    if (vegOnly) result = result.filter((r) => isPureVegRestaurant(r.id, menuItems));
     return result;
-  }, [restaurants, sortBy, vegOnly]);
+  }, [restaurants, sortBy, vegOnly, menuItems]);
 
   const hasActiveFilters = vegOnly || sortBy !== "relevance";
 

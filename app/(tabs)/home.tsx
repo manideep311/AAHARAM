@@ -4,10 +4,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Bell, Search, CircleAlert, Sparkles, ShoppingCart } from "lucide-react-native";
-import { getRestaurants } from "../../services/restaurants";
+import { getRestaurants, getAllMenuItems } from "../../services/restaurants";
 import { getOrders } from "../../services/orders";
-import { SEED_MENU_ITEMS } from "../../data/seed/menu-items";
-import { SEED_OFFERS } from "../../data/seed/offers";
+import { getOffers } from "../../services/offers";
 import { filterRestaurants } from "../../features/search/filters";
 import { getRecommendations } from "../../features/recommendations/recommend";
 import { useLocationStore } from "../../store/location-store";
@@ -114,7 +113,9 @@ export default function Home() {
         : [],
     [restaurants, orders, favoriteRestaurantIds, preferences]
   );
-  const trendingDishes = useMemo(() => SEED_MENU_ITEMS.filter((i) => i.popular), []);
+  const { data: allMenuItems } = useQuery({ queryKey: ["menu-items"], queryFn: getAllMenuItems });
+  const { data: offers } = useQuery({ queryKey: ["offers"], queryFn: getOffers });
+  const trendingDishes = useMemo(() => (allMenuItems ?? []).filter((i) => i.popular), [allMenuItems]);
 
   function renderHeader() {
     return (
@@ -220,7 +221,7 @@ export default function Home() {
           <>
             <SectionHeader title="Special Offers" />
             <HorizontalCarousel
-              data={SEED_OFFERS}
+              data={offers ?? []}
               keyExtractor={(o) => o.id}
               renderItem={({ item }) => <OfferCard offer={item} />}
             />
