@@ -1,29 +1,37 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../lib/supabase";
 import { Address } from "../types/domain";
-import { SEED_ADDRESSES } from "../data/seed/addresses";
-
-const KEY = "aaharam:addresses";
-
-async function readAll(): Promise<Address[]> {
-  const raw = await AsyncStorage.getItem(KEY);
-  if (raw) return JSON.parse(raw);
-  await AsyncStorage.setItem(KEY, JSON.stringify(SEED_ADDRESSES));
-  return SEED_ADDRESSES;
-}
+import { addressFromRow, addressToWrite, type AddressRow } from "../supabase/functions/_shared/mappers";
 
 export async function getAddresses(): Promise<Address[]> {
-  return readAll();
+  const { data, error } = await supabase.from("addresses").select("*").order("created_at");
+  if (error) throw error;
+  return (data as AddressRow[]).map(addressFromRow);
 }
 
-export async function saveAddress(addr: Address): Promise<void> {
-  const all = await readAll();
-  const index = all.findIndex((a) => a.id === addr.id);
-  let next = index >= 0 ? all.map((a, i) => (i === index ? addr : a)) : [...all, addr];
-  if (addr.isDefault) next = next.map((a) => (a.id === addr.id ? a : { ...a, isDefault: false }));
-  await AsyncStorage.setItem(KEY, JSON.stringify(next));
+export async function setDefaultAddress(id: string): Promise<void> {
+  const { error } = await supabase.rpc("set_default_address", { address_id: id });
+  if (error) throw error;
+}
+
+/** Creates the address when `addr.id` is empty, otherwise updates it. Returns its id. */
+export async function saveAddress(addr: Address): Promise<string> {
+  const fields = addressToWrite(addr);
+  let id = addr.id;
+  if (id) {
+    const { error } = await supabase.from("addresses").update(fields).eq("id", id);
+    if (error) throw error;
+  } else {
+    // Inserted as non-default first; set_default_address flips the default atomically, so the
+    // one-default-per-user unique index is never violated.
+    const { data, error } = await supabase.from("addresses").insert({ ...fields, is_default: false }).select("id").single();
+    if (error) throw error;
+    id = data.id as string;
+  }
+  if (addr.isDefault) await setDefaultAddress(id);
+  return id;
 }
 
 export async function deleteAddress(id: string): Promise<void> {
-  const all = await readAll();
-  await AsyncStorage.setItem(KEY, JSON.stringify(all.filter((a) => a.id !== id)));
+  const { error } = await supabase.from("addresses").delete().eq("id", id);
+  if (error) throw error;
 }

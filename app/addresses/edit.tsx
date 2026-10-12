@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,10 +46,12 @@ export default function AddressEditScreen() {
   const existingId = params.id;
   const isEditing = !!existingId;
 
+  const queryClient = useQueryClient();
   const addressesQuery = useQuery({ queryKey: ["addresses"], queryFn: getAddresses });
   const existingAddress = addressesQuery.data?.find((a) => a.id === existingId);
 
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const {
     control,
@@ -86,23 +88,31 @@ export default function AddressEditScreen() {
 
   async function onSubmit(values: AddressFormValues) {
     setSaving(true);
+    setSaveError(null);
     const isFirstAddress = !isEditing && (addressesQuery.data?.length ?? 0) === 0;
-    await saveAddress({
-      id: existingId ?? `addr${Date.now()}`,
-      label: values.label,
-      recipientName: values.recipientName,
-      phone: values.phone,
-      line1: values.line1,
-      area: values.area,
-      city: values.city,
-      state: values.state,
-      postalCode: values.postalCode,
-      landmark: values.landmark?.trim() ? values.landmark : undefined,
-      instructions: values.instructions?.trim() ? values.instructions : undefined,
-      isDefault: existingAddress?.isDefault ?? isFirstAddress,
-    });
-    setSaving(false);
-    router.back();
+    try {
+      await saveAddress({
+        id: existingId ?? "",
+        label: values.label,
+        recipientName: values.recipientName,
+        phone: values.phone,
+        line1: values.line1,
+        area: values.area,
+        city: values.city,
+        state: values.state,
+        postalCode: values.postalCode,
+        landmark: values.landmark?.trim() ? values.landmark : undefined,
+        instructions: values.instructions?.trim() ? values.instructions : undefined,
+        isDefault: existingAddress?.isDefault ?? isFirstAddress,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      router.back();
+    } catch (e) {
+      // Saving now goes over the network, so it can fail; keep the form filled in for a retry.
+      setSaveError(e instanceof Error ? e.message : "Couldn't save this address. Try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (isEditing && addressesQuery.isLoading) {
@@ -259,6 +269,7 @@ export default function AddressEditScreen() {
         />
 
         <Button title="Save Address" onPress={handleSubmit(onSubmit)} loading={saving} accessibilityLabel="Save Address" />
+        {saveError ? <Text className="mt-2 text-xs text-danger">{saveError}</Text> : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );

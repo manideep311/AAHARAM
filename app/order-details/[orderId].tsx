@@ -6,7 +6,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, AlertTriangle, MapPin, Smartphone, CreditCard, Landmark, Banknote, LucideIcon, ChevronDown, ChevronUp, RefreshCw } from "lucide-react-native";
 import { getOrderById } from "../../services/orders";
 import { getRestaurantById, getMenuForRestaurant } from "../../services/restaurants";
-import { getAddresses } from "../../services/addresses";
 import { PriceBreakdown } from "../../components/cart/PriceBreakdown";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -97,8 +96,7 @@ export default function OrderDetailsScreen() {
   });
   const menuItems = menuQuery.data?.items ?? [];
 
-  const addressesQuery = useQuery({ queryKey: ["addresses"], queryFn: getAddresses });
-  const address = addressesQuery.data?.find((a) => a.id === order?.addressId);
+  const address = order?.address;
 
   // Called unconditionally (Rules of Hooks) -- useReorderFlow is a no-op until `order` resolves.
   const reorder = useReorderFlow(order ?? null);

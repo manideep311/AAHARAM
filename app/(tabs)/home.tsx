@@ -83,6 +83,7 @@ export default function Home() {
   const { data: orders } = useQuery({
     queryKey: ["orders"],
     queryFn: getOrders,
+    enabled: !!user && !user.isGuest,
   });
 
   const popularNearYou = useMemo(

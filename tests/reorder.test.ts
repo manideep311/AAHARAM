@@ -9,7 +9,12 @@ const currentMenu = SEED_MENU_ITEMS.filter((i) => i.restaurantId === "r1");
 const sampleOrder: Order = {
   id: "ord1", restaurantId: "r1", restaurantName: restaurant.name,
   items: [{ menuItemId: "m1", name: "Paneer Biryani", quantity: 1, unitPrice: 220, customization: { optionSelections: { og1: "opt1" }, addOnIds: [] } }],
-  status: "delivered", placedAt: "2026-09-01T00:00:00.000Z", addressId: "addr1", paymentMethod: "upi",
+  status: "delivered", placedAt: "2026-09-01T00:00:00.000Z", statusUpdatedAt: "2026-09-01T00:08:00.000Z",
+  address: {
+    id: "addr1", label: "Home", recipientName: "Asha Rao", phone: "9876543210", line1: "12 MG Road",
+    area: "Indiranagar", city: "Bengaluru", state: "Karnataka", postalCode: "560038", isDefault: true,
+  },
+  paymentMethod: "upi", paymentStatus: "paid_simulated",
   subtotal: 220, discount: 0, deliveryFee: 29, tax: 11, total: 260,
 };
 

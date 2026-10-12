@@ -2,7 +2,8 @@
 // (camelCase, optional fields). Shared by the app's services, the Edge Functions and the
 // seed generator so the three can never disagree about a column.
 import type {
-  AddOn, Address, Coupon, ItemOptionGroup, MenuCategory, MenuItem, Offer, Restaurant, VegFlag,
+  AddOn, Address, Coupon, ItemOptionGroup, MenuCategory, MenuItem, Offer, Order, OrderItem, OrderStatus,
+  PaymentMethod, PaymentStatus, Restaurant, VegFlag,
 } from "./domain.ts";
 
 export interface RestaurantRow {
@@ -254,5 +255,51 @@ export function addressToWrite(a: Address): AddressWrite {
     instructions: a.instructions ?? null,
     lat: a.lat ?? null,
     lng: a.lng ?? null,
+  };
+}
+
+export interface OrderRow {
+  id: string;
+  user_id: string;
+  client_request_id: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  items: OrderItem[];
+  address: Address;
+  delivery_instructions: string | null;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  status: OrderStatus;
+  subtotal: number;
+  discount: number;
+  delivery_fee: number;
+  tax: number;
+  total: number;
+  coupon_code: string | null;
+  eta_minutes: number;
+  placed_at: string;
+  status_updated_at: string;
+}
+
+export function orderFromRow(o: OrderRow): Order {
+  return {
+    id: o.id,
+    restaurantId: o.restaurant_id,
+    restaurantName: o.restaurant_name,
+    items: o.items,
+    status: o.status,
+    placedAt: o.placed_at,
+    statusUpdatedAt: o.status_updated_at,
+    address: o.address,
+    deliveryInstructions: o.delivery_instructions ?? undefined,
+    paymentMethod: o.payment_method,
+    paymentStatus: o.payment_status,
+    subtotal: o.subtotal,
+    discount: o.discount,
+    deliveryFee: o.delivery_fee,
+    tax: o.tax,
+    total: o.total,
+    couponCode: o.coupon_code ?? undefined,
+    etaMinutes: o.eta_minutes,
   };
 }

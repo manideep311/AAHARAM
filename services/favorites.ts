@@ -1,22 +1,21 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../lib/supabase";
 
-const REST_KEY = "aaharam:favorites:restaurants";
-const ITEM_KEY = "aaharam:favorites:items";
+type FavoriteKind = "restaurant" | "menu_item";
 
-async function readIds(key: string): Promise<string[]> {
-  const raw = await AsyncStorage.getItem(key);
-  return raw ? JSON.parse(raw) : [];
+async function readIds(kind: FavoriteKind): Promise<string[]> {
+  const { data, error } = await supabase.from("favorites").select("target_id").eq("kind", kind);
+  if (error) throw error;
+  return data.map((row) => row.target_id as string);
 }
 
-async function toggle(key: string, id: string): Promise<boolean> {
-  const ids = await readIds(key);
-  const isFavorited = ids.includes(id);
-  const next = isFavorited ? ids.filter((x) => x !== id) : [...ids, id];
-  await AsyncStorage.setItem(key, JSON.stringify(next));
-  return !isFavorited;
+async function setFavorite(kind: FavoriteKind, targetId: string, favorite: boolean): Promise<void> {
+  const { error } = favorite
+    ? await supabase.from("favorites").upsert({ kind, target_id: targetId }, { onConflict: "user_id,kind,target_id", ignoreDuplicates: true })
+    : await supabase.from("favorites").delete().eq("kind", kind).eq("target_id", targetId);
+  if (error) throw error;
 }
 
-export const getFavoriteRestaurantIds = () => readIds(REST_KEY);
-export const getFavoriteMenuItemIds = () => readIds(ITEM_KEY);
-export const toggleFavoriteRestaurant = (id: string) => toggle(REST_KEY, id);
-export const toggleFavoriteMenuItem = (id: string) => toggle(ITEM_KEY, id);
+export const getFavoriteRestaurantIds = () => readIds("restaurant");
+export const getFavoriteMenuItemIds = () => readIds("menu_item");
+export const setRestaurantFavorite = (id: string, favorite: boolean) => setFavorite("restaurant", id, favorite);
+export const setMenuItemFavorite = (id: string, favorite: boolean) => setFavorite("menu_item", id, favorite);

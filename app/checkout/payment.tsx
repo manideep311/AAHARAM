@@ -147,12 +147,13 @@ export default function PaymentScreen() {
       // e.g. createOrder's closed-restaurant guard, or a real storage/network error.
       const order = await createOrder({
         clientRequestId,
-        restaurant,
-        lines,
-        menuItems,
-        coupon: resolvedCoupon,
-        address: resolvedAddress,
+        restaurantId: restaurant.id,
+        lines: lines.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity, customization: l.customization })),
+        couponCode: resolvedCoupon?.code ?? null,
+        addressId: resolvedAddress.id,
         paymentMethod,
+        deliveryInstructions: deliveryInstructions ?? null,
+        expectedTotal: totals?.total ?? 0,
       });
 
       useCartStore.getState().clearCart();

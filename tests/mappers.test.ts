@@ -5,6 +5,7 @@ import {
   offerFromRow, offerToRow,
   couponFromRow, couponToRow,
   addressFromRow, addressToWrite, AddressRow,
+  orderFromRow, OrderRow,
 } from "../supabase/functions/_shared/mappers";
 import { SEED_RESTAURANTS } from "../data/seed/restaurants";
 import { SEED_CATEGORIES } from "../data/seed/categories";
@@ -86,6 +87,55 @@ describe("row-specific conversions", () => {
       instructions: "Ring twice",
       lat: null,
       lng: null,
+    });
+  });
+});
+
+describe("orderFromRow", () => {
+  it("maps snake_case order rows, including the address snapshot", () => {
+    const address = {
+      id: "6f1c1d1e-0000-4000-8000-000000000001", label: "Home" as const, recipientName: "Asha Rao", phone: "9876543210",
+      line1: "12 MG Road", area: "Indiranagar", city: "Bengaluru", state: "Karnataka", postalCode: "560038", isDefault: true,
+    };
+    const row: OrderRow = {
+      id: "6f1c1d1e-0000-4000-8000-0000000000bb",
+      user_id: "6f1c1d1e-0000-4000-8000-0000000000aa",
+      client_request_id: "req-1",
+      restaurant_id: "r1",
+      restaurant_name: "Biryani Junction",
+      items: [{ menuItemId: "m1", name: "Paneer Biryani", quantity: 2, unitPrice: 220, customization: { optionSelections: { og1: "opt1" }, addOnIds: [] } }],
+      address,
+      delivery_instructions: null,
+      payment_method: "upi",
+      payment_status: "paid_simulated",
+      status: "placed",
+      subtotal: 440,
+      discount: 0,
+      delivery_fee: 29,
+      tax: 22,
+      total: 491,
+      coupon_code: null,
+      eta_minutes: 35,
+      placed_at: "2026-10-12T12:00:00+00:00",
+      status_updated_at: "2026-10-12T12:00:00+00:00",
+    };
+    expect(orderFromRow(row)).toEqual({
+      id: row.id,
+      restaurantId: "r1",
+      restaurantName: "Biryani Junction",
+      items: row.items,
+      status: "placed",
+      placedAt: row.placed_at,
+      statusUpdatedAt: row.status_updated_at,
+      address,
+      paymentMethod: "upi",
+      paymentStatus: "paid_simulated",
+      subtotal: 440,
+      discount: 0,
+      deliveryFee: 29,
+      tax: 22,
+      total: 491,
+      etaMinutes: 35,
     });
   });
 });

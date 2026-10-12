@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, MapPin, Pencil, Trash2, Check } from "lucide-react-native";
-import { getAddresses, saveAddress, deleteAddress } from "../../services/addresses";
+import { getAddresses, setDefaultAddress, deleteAddress } from "../../services/addresses";
 import { useCheckoutSelectionStore } from "../../store/checkout-selection-store";
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
@@ -50,7 +50,7 @@ export default function AddressesScreen() {
 
   function handleSetDefault(address: Address) {
     if (address.isDefault) return;
-    saveAddress({ ...address, isDefault: true }).then(() => addressesQuery.refetch());
+    setDefaultAddress(address.id).then(() => addressesQuery.refetch());
   }
 
   function handleDelete(address: Address) {

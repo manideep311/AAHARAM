@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { CheckCircle2, AlertTriangle, MapPin, Clock, Banknote } from "lucide-react-native";
 import { getOrderById } from "../../services/orders";
-import { getAddresses } from "../../services/addresses";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -26,8 +25,7 @@ export default function OrderConfirmationScreen() {
   });
   const order = orderQuery.data;
 
-  const addressesQuery = useQuery({ queryKey: ["addresses"], queryFn: getAddresses });
-  const address = addressesQuery.data?.find((a) => a.id === order?.addressId);
+  const address = order?.address;
 
   if (!orderId) {
     return (

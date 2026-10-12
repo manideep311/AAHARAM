@@ -1,21 +1,18 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { View, Text, ScrollView, Pressable, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, AlertTriangle, FlaskConical, Phone, HelpCircle, Clock } from "lucide-react-native";
-import { getOrderById, updateOrderStatus } from "../../services/orders";
+import { getOrderById } from "../../services/orders";
 import { getRestaurantById } from "../../services/restaurants";
 import { TrackingTimeline } from "../../components/orders/TrackingTimeline";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { formatOrderDate } from "../../lib/formatting/datetime";
-import { ORDER_STATUS_LABELS, isTerminalStatus, nextStatus } from "../../features/orders/status";
-import { useNotificationsStore } from "../../store/notifications-store";
+import { ORDER_STATUS_LABELS } from "../../features/orders/status";
 import { colors } from "../../constants/theme";
-
-const SIMULATION_INTERVAL_MS = 8000;
 
 function Header({ topInset }: { topInset: number }) {
   return (
@@ -41,60 +38,12 @@ export default function TrackingScreen() {
   });
   const order = orderQuery.data;
 
-  const pushNotification = useNotificationsStore((s) => s.push);
-
   const restaurantQuery = useQuery({
     queryKey: ["restaurant", order?.restaurantId],
     queryFn: () => getRestaurantById(order!.restaurantId),
     enabled: !!order?.restaurantId,
   });
   const restaurant = restaurantQuery.data;
-
-  // Guards state updates after unmount -- the simulation's update+refetch is async, and the
-  // screen can unmount mid-flight if the user navigates away between the update resolving and
-  // the refetch completing.
-  const mountedRef = useRef(true);
-  useEffect(() => () => {
-    mountedRef.current = false;
-  }, []);
-
-  // ============================================================================================
-  // SIMULATED STATUS PROGRESSION (dev-only -- there is no real courier or GPS behind this app).
-  // This is the ONE place that advances an order's status over time. Task 18 hooks into this
-  // same tick to also push an in-app notification whenever the status changes, so notifications
-  // and tracking stay consistent.
-  // ============================================================================================
-  useEffect(() => {
-    if (!orderId || !order) return;
-    if (isTerminalStatus(order.status)) return; // Reached delivered/cancelled/failed -- simulation is done, no interval to start.
-
-    let advancing = false; // prevents a slow in-flight tick from overlapping with the next one
-
-    const intervalId = setInterval(async () => {
-      if (advancing) return;
-      const next = nextStatus(order.status);
-      if (!next) return;
-
-      advancing = true;
-      try {
-        await updateOrderStatus(orderId, next);
-        // Task 18 extension point: fire an in-app notification for `next` here.
-        pushNotification({
-          title: "Order Update",
-          body: `Your order from ${order.restaurantName} is ${ORDER_STATUS_LABELS[next].toLowerCase()}!`,
-        });
-        if (mountedRef.current) await orderQuery.refetch();
-      } finally {
-        advancing = false;
-      }
-    }, SIMULATION_INTERVAL_MS);
-
-    return () => clearInterval(intervalId);
-    // Re-running this effect whenever the order's status changes is what makes it stop: once
-    // order.status becomes terminal, this effect body returns above instead of starting a new
-    // interval, and the cleanup from the previous run has already cleared the old one.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId, order?.status]);
 
   if (!orderId) {
     return (

@@ -12,6 +12,8 @@ import { View, Text } from "react-native";
 import { useAuthStore } from "../store/auth-store";
 import { getCurrentUser, userFromSession } from "../services/auth";
 import { supabase } from "../lib/supabase";
+import { clearLegacyLocalData } from "../lib/legacy-cleanup";
+import { useFavoritesStore } from "../store/favorites-store";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 const queryClient = new QueryClient();
@@ -44,6 +46,7 @@ export default function RootLayout() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      await clearLegacyLocalData().catch(() => undefined);
       const user = await getCurrentUser().catch(() => null);
       if (cancelled) return;
       setUser(user);
@@ -52,11 +55,13 @@ export default function RootLayout() {
 
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
+        useFavoritesStore.getState().reset();
         if (!useAuthStore.getState().user?.isGuest) setUser(null);
         queryClient.clear();
         return;
       }
       if ((event === "SIGNED_IN" || event === "USER_UPDATED") && session) {
+        useFavoritesStore.getState().reset();
         // supabase-js warns against awaiting Supabase calls inside this callback (it can
         // deadlock the auth lock), so the profile fetch is deferred to the next tick.
         setTimeout(() => {

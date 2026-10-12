@@ -152,8 +152,12 @@ export interface Order {
   items: OrderItem[];
   status: OrderStatus;
   placedAt: string;
-  addressId: string;
+  statusUpdatedAt: string;
+  /** Snapshot of the delivery address at order time (survives later edits/deletes). */
+  address: Address;
+  deliveryInstructions?: string;
   paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
   subtotal: number;
   discount: number;
   deliveryFee: number;
