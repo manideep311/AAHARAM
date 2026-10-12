@@ -3,11 +3,10 @@
     "name": "AAHARAM",
     "slug": "AAHARAM",
     "version": "1.0.0",
-    "scheme": "AAHARAM",
+    "scheme": "aaharam",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
