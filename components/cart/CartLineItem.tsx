@@ -39,9 +39,10 @@ function buildCustomizationSummary(line: CartLineItemModel, menuItem: MenuItem):
 interface CartLineItemCardProps {
   line: CartLineItemModel;
   menuItem: MenuItem | undefined;
+  unavailable?: boolean;
 }
 
-export function CartLineItemCard({ line, menuItem }: CartLineItemCardProps) {
+export function CartLineItemCard({ line, menuItem, unavailable }: CartLineItemCardProps) {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
 
   const name = menuItem?.name ?? "Item no longer available";
@@ -63,6 +64,9 @@ export function CartLineItemCard({ line, menuItem }: CartLineItemCardProps) {
             <Text className="mt-1 text-xs italic text-muted" numberOfLines={1}>
               Note: {line.customization.specialInstructions}
             </Text>
+          ) : null}
+          {unavailable ? (
+            <Text className="mt-1 text-xs font-semibold text-danger">No longer available - remove it to continue</Text>
           ) : null}
 
           {/* Editing-in-place isn't implemented in this sub-project (Task 13's customization

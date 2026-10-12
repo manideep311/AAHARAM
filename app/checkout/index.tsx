@@ -107,15 +107,10 @@ export default function CheckoutScreen() {
 
   const resolvedAddress = addresses.find((a) => a.id === selectedAddressId) ?? null;
 
-  // Purely local, transient draft for THIS checkout only -- intentionally never written back to
-  // the saved Address record. Seeded once from the address's saved note as a starting point (and
-  // re-seeded if the user switches to a different address), but editing it here must never mutate
-  // the user's permanent address-book entry: a one-off note like "leave with roommate today" is
-  // not safe to silently persist as a standing property of e.g. their "Home" address, since
-  // app/addresses/index.tsx permanently displays Address.instructions on that address's card.
-  // There's also no Order/CreateOrderInput field to carry it through to the order itself (a real
-  // data-model gap), so for now it is dropped if the user navigates away without placing the
-  // order, and otherwise only ever shown back to them, read-only, on the payment screen.
+  // Transient note for THIS checkout only -- never written back to the saved Address (a one-off
+  // note like "leave with roommate today" must not become a standing property of "Home").
+  // Seeded from the address's saved note and re-seeded when the address changes; carried to the
+  // payment screen as a query string and sent to place-order, which stores it on the order.
   const [instructionsDraft, setInstructionsDraft] = useState(resolvedAddress?.instructions ?? "");
   const seededAddressId = useRef<string | null>(null);
   useEffect(() => {
@@ -136,10 +131,7 @@ export default function CheckoutScreen() {
     if (!resolvedAddress || !restaurant || lines.length === 0 || placingOrder) return;
     setPlacingOrder(true);
     try {
-      // instructionsDraft is intentionally NOT persisted anywhere (see comment above its
-      // declaration) -- it's carried to the payment screen purely for read-only display, as a
-      // plain query string, exactly like clientRequestId. It is never written to the Address
-      // record and never sent to createOrder (CreateOrderInput has no field for it).
+      // Carried as a query string like clientRequestId; payment.tsx sends it to place-order.
       const trimmed = instructionsDraft.trim();
       const instructionsQuery = trimmed ? `&instructions=${encodeURIComponent(trimmed)}` : "";
       router.push(`/checkout/payment?clientRequestId=${encodeURIComponent(clientRequestId)}${instructionsQuery}`);

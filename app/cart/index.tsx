@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { View, Text, FlatList, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import { ArrowLeft, AlertTriangle, ShoppingBag } from "lucide-react-native";
 import { useCartStore } from "../../store/cart-store";
 import { requireSignIn } from "../../features/auth/requireSignIn";
+import { useCheckoutSelectionStore } from "../../store/checkout-selection-store";
 import { getRestaurantById, getMenuForRestaurant } from "../../services/restaurants";
 import { validateCoupon } from "../../services/coupons";
 import { calculateCartTotals } from "../../lib/pricing/calculate";
@@ -37,6 +38,14 @@ export default function CartScreen() {
   const restaurantId = useCartStore((s) => s.restaurantId);
   const lines = useCartStore((s) => s.lines);
   const couponCode = useCartStore((s) => s.couponCode);
+
+  const cartNotice = useCheckoutSelectionStore((s) => s.cartNotice);
+  const unavailableItemIds = useCheckoutSelectionStore((s) => s.unavailableItemIds);
+  const clearCartFeedback = useCheckoutSelectionStore((s) => s.clearCartFeedback);
+  const hasUnavailable = lines.some((l) => unavailableItemIds.includes(l.menuItemId));
+
+  // Server feedback is about this visit only; drop it once the user leaves the cart.
+  useEffect(() => () => clearCartFeedback(), [clearCartFeedback]);
 
   const restaurantQuery = useQuery({
     queryKey: ["restaurant", restaurantId],
@@ -147,8 +156,25 @@ export default function CartScreen() {
       <FlatList
         data={lines}
         keyExtractor={(line) => line.lineId}
-        renderItem={({ item }) => <CartLineItemCard line={item} menuItem={findMenuItem(item.menuItemId)} />}
+        renderItem={({ item }) => (
+          <CartLineItemCard
+            line={item}
+            menuItem={findMenuItem(item.menuItemId)}
+            unavailable={unavailableItemIds.includes(item.menuItemId)}
+          />
+        )}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: insets.bottom + 140 }}
+        ListHeaderComponent={
+          cartNotice ? (
+            <View className="mb-3 flex-row items-start rounded-xl bg-danger/10 px-3 py-2.5">
+              <AlertTriangle size={16} color={colors.danger} />
+              <Text className="ml-2 flex-1 text-sm font-semibold text-danger">{cartNotice}</Text>
+              <Pressable onPress={clearCartFeedback} accessibilityRole="button" accessibilityLabel="Dismiss" hitSlop={8}>
+                <Text className="text-xs font-semibold text-danger">Dismiss</Text>
+              </Pressable>
+            </View>
+          ) : null
+        }
         ListFooterComponent={
           <View>
             {belowMinOrder ? (
@@ -183,12 +209,26 @@ export default function CartScreen() {
           </View>
         ) : null}
         <Button
-          title={belowMinOrder ? `Add ${formatCurrency(shortfall)} more to continue` : "Proceed to Checkout"}
-          disabled={belowMinOrder}
+          title={
+            hasUnavailable
+              ? "Remove unavailable items"
+              : belowMinOrder
+              ? `Add ${formatCurrency(shortfall)} more to continue`
+              : "Proceed to Checkout"
+          }
+          disabled={belowMinOrder || hasUnavailable}
           size="lg"
-          accessibilityLabel={belowMinOrder ? `Minimum order not met, add ${formatCurrency(shortfall)} more` : "Proceed to Checkout"}
+          accessibilityLabel={
+            hasUnavailable
+              ? "Remove unavailable items to continue"
+              : belowMinOrder
+              ? `Minimum order not met, add ${formatCurrency(shortfall)} more`
+              : "Proceed to Checkout"
+          }
           onPress={() => {
-            if (requireSignIn("/checkout")) router.push("/checkout");
+            if (!requireSignIn("/checkout")) return;
+            clearCartFeedback();
+            router.push("/checkout");
           }}
         />
       </View>

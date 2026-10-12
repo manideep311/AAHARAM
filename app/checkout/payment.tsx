@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, FlaskConical, Smartphone, CreditCard, Landmark, Banknote, AlertTriangle, LucideIcon, Clock } from "lucide-react-native";
 import { useCartStore } from "../../store/cart-store";
@@ -10,7 +10,9 @@ import { getAddresses } from "../../services/addresses";
 import { getRestaurantById, getMenuForRestaurant } from "../../services/restaurants";
 import { validateCoupon } from "../../services/coupons";
 import { createOrder } from "../../services/orders";
-import { calculateCartTotals } from "../../lib/pricing/calculate";
+import { OrderError } from "../../services/order-errors";
+import { calculateCartTotals, CartTotals } from "../../lib/pricing/calculate";
+import { PriceBreakdown } from "../../components/cart/PriceBreakdown";
 import { formatCurrency } from "../../lib/formatting/currency";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -45,10 +47,8 @@ export default function PaymentScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ clientRequestId?: string; instructions?: string }>();
   const clientRequestId = params.clientRequestId;
-  // Read-only display only -- this is the user's one-off note for THIS order, carried purely as
-  // a query string (like clientRequestId). It is never written back to the saved Address and
-  // never sent to createOrder (CreateOrderInput has no field for it); it is simply shown back to
-  // the user here as confirmation of what they typed, then dropped.
+  // The user's one-off note for THIS order, carried from checkout as a query string. It is sent
+  // to place-order (stored on the order only) and never written back to the saved Address.
   const deliveryInstructions = params.instructions;
 
   const restaurantId = useCartStore((s) => s.restaurantId);
@@ -105,12 +105,14 @@ export default function PaymentScreen() {
   // since this screen is navigating away and must never fire another createOrder.
   const submittingRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "processing" | "error">("idle");
+  const [phase, setPhase] = useState<"idle" | "processing" | "error" | "price-changed">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [serverTotals, setServerTotals] = useState<CartTotals | null>(null);
+  const queryClient = useQueryClient();
 
-  // UI-layer safety net (NOT the authoritative guard -- that's createOrder's isOpen check in
-  // services/orders.ts, which holds regardless of this): keeps a user from paying for an order
-  // from a restaurant that closed after checkout but before this screen was reached.
+  // UI-layer safety net (NOT the authoritative guard -- that's place-order's isOpen check on the
+  // server, which holds regardless of this): keeps a user from paying for an order from a
+  // restaurant that closed after checkout but before this screen was reached.
   const restaurantClosed = !!restaurant && !restaurant.isOpen;
 
   // Guards against calling setState / router.replace after the user has navigated away (e.g.
@@ -122,9 +124,9 @@ export default function PaymentScreen() {
     mountedRef.current = false;
   }, []);
 
-  async function handleConfirm() {
+  async function handleConfirm(acceptedTotal?: number) {
     if (submittingRef.current) return;
-    if (!resolvedAddress || !restaurant || !clientRequestId || lines.length === 0) return;
+    if (!resolvedAddress || !restaurant || !clientRequestId || lines.length === 0 || !totals) return;
     if (restaurantClosed) return;
 
     submittingRef.current = true;
@@ -137,14 +139,8 @@ export default function PaymentScreen() {
         await new Promise((resolve) => setTimeout(resolve, PROCESSING_DELAY_MS));
       }
 
-      // NOTE: this screen previously injected a deterministic simulated failure AFTER createOrder
-      // succeeded, on every single first attempt for a non-COD method. That meant every demo
-      // online payment hit a scary unlabeled error, and -- because the throw happened after the
-      // order already existed -- a user who abandoned at that point left an orphaned "placed"
-      // order with a non-cleared cart. Removed outright: a normal demo checkout now succeeds on
-      // the first try by default, and the retry UI/logic below (phase "error", Retry Payment
-      // button, submittingRef reset) remains fully intact and exercised by any genuine failure --
-      // e.g. createOrder's closed-restaurant guard, or a real storage/network error.
+      // Only IDs and choices are sent; place-order prices everything itself. expectedTotal is
+      // what the user saw, so a server-side price change can never charge a surprise amount.
       const order = await createOrder({
         clientRequestId,
         restaurantId: restaurant.id,
@@ -153,22 +149,54 @@ export default function PaymentScreen() {
         addressId: resolvedAddress.id,
         paymentMethod,
         deliveryInstructions: deliveryInstructions ?? null,
-        expectedTotal: totals?.total ?? 0,
+        expectedTotal: acceptedTotal ?? totals.total,
       });
 
       useCartStore.getState().clearCart();
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
       if (!mountedRef.current) return;
       router.replace(`/order-confirmation/${order.id}`);
-      // No reset of submittingRef/isSubmitting here: this screen instance is unmounting, and the
-      // trigger must stay disabled for its entire remaining lifetime.
+      // submittingRef stays true: this screen is leaving and must never fire createOrder again.
     } catch (err) {
       if (!mountedRef.current) return;
-      setPhase("error");
-      setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       // Re-enable the trigger only now that the failed attempt has fully resolved, so a retry
       // tap can start a new, single, non-overlapping call.
       submittingRef.current = false;
       setIsSubmitting(false);
+      const error = err instanceof OrderError ? err : new OrderError("INTERNAL", "Something went wrong. Please try again.");
+      const sendBackToCart = (notice: string, unavailableIds: string[] = []) => {
+        useCheckoutSelectionStore.getState().setCartFeedback(notice, unavailableIds);
+        queryClient.invalidateQueries({ queryKey: ["menu", restaurant.id] });
+        queryClient.invalidateQueries({ queryKey: ["restaurant", restaurant.id] });
+        router.dismissTo("/cart");
+      };
+
+      switch (error.code) {
+        case "PRICE_CHANGED":
+          setServerTotals((error.details?.totals as CartTotals | undefined) ?? null);
+          setPhase("price-changed");
+          queryClient.invalidateQueries({ queryKey: ["menu", restaurant.id] });
+          return;
+        case "ITEM_UNAVAILABLE":
+          sendBackToCart(error.message, (error.details?.menuItemIds as string[] | undefined) ?? []);
+          return;
+        case "COUPON_INVALID":
+          useCartStore.getState().removeCoupon();
+          sendBackToCart(`Coupon removed: ${(error.details?.reason as string | undefined) ?? error.message}`);
+          return;
+        case "RESTAURANT_CLOSED":
+        case "BELOW_MIN_ORDER":
+          sendBackToCart(error.message);
+          return;
+        case "UNAUTHORIZED":
+          router.push("/auth/login?returnTo=%2Fcheckout");
+          return;
+        default:
+          // NETWORK / INTERNAL / INVALID_INPUT / NOT_FOUND: retry reuses the same clientRequestId,
+          // so a retry after an ambiguous failure can never create a second order.
+          setPhase("error");
+          setErrorMessage(error.message);
+      }
     }
   }
 
@@ -280,6 +308,25 @@ export default function PaymentScreen() {
           </Card>
         ) : null}
 
+        {phase === "price-changed" && serverTotals ? (
+          <Card className="mb-4 p-4">
+            <Text className="text-sm font-bold text-ink">Prices have changed</Text>
+            <Text className="mt-1 mb-3 text-xs text-muted">
+              The restaurant updated its menu since you reviewed your order. Here's the new total:
+            </Text>
+            <PriceBreakdown totals={serverTotals} originalDeliveryFee={restaurant.deliveryFee} />
+            <View className="mt-3">
+              <Button
+                title={`Confirm ${formatCurrency(serverTotals.total)}`}
+                size="lg"
+                loading={isSubmitting}
+                onPress={() => handleConfirm(serverTotals.total)}
+                accessibilityLabel={`Confirm new total ${formatCurrency(serverTotals.total)}`}
+              />
+            </View>
+          </Card>
+        ) : null}
+
         {phase === "error" && errorMessage ? (
           <View className="mb-4 flex-row items-start rounded-xl bg-danger/10 px-3 py-2.5">
             <AlertTriangle size={16} color={colors.danger} />
@@ -287,14 +334,14 @@ export default function PaymentScreen() {
           </View>
         ) : null}
 
-        {phase === "error" ? (
+        {phase === "price-changed" ? null : phase === "error" ? (
           <Button
             title="Retry Payment"
             size="lg"
             loading={isSubmitting}
             disabled={restaurantClosed}
             accessibilityLabel="Retry Payment"
-            onPress={handleConfirm}
+            onPress={() => handleConfirm()}
           />
         ) : (
           <Button
@@ -315,7 +362,7 @@ export default function PaymentScreen() {
                 ? "Place order, cash on delivery"
                 : `Pay ${formatCurrency(total)}`
             }
-            onPress={handleConfirm}
+            onPress={() => handleConfirm()}
           />
         )}
       </View>
