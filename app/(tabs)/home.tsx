@@ -11,7 +11,7 @@ import { filterRestaurants } from "../../features/search/filters";
 import { getRecommendations } from "../../features/recommendations/recommend";
 import { useLocationStore } from "../../store/location-store";
 import { useAuthStore } from "../../store/auth-store";
-import { useNotificationsStore } from "../../store/notifications-store";
+import { useNotifications } from "../../hooks/useNotifications";
 import { useFavoritesStore } from "../../store/favorites-store";
 import { usePreferencesStore } from "../../store/preferences-store";
 import { useCartStore } from "../../store/cart-store";
@@ -59,7 +59,7 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const locationLabel = useLocationStore((s) => s.label);
   const user = useAuthStore((s) => s.user);
-  const unreadCount = useNotificationsStore((s) => s.unreadCount);
+  const { unreadCount } = useNotifications();
   const cartCount = useCartStore((s) => s.lines.length);
   const favoritesLoaded = useFavoritesStore((s) => s.loaded);
   const loadFavorites = useFavoritesStore((s) => s.load);

@@ -72,11 +72,3 @@ export function orderStatusIcon(status: OrderStatus): LucideIcon | undefined {
       return undefined;
   }
 }
-
-// Status immediately following `status` in the happy-path sequence, or null once at/after
-// "delivered" or if `status` is a terminal status not part of the sequence (cancelled/failed).
-export function nextStatus(status: OrderStatus): OrderStatus | null {
-  const index = ORDER_STATUS_SEQUENCE.indexOf(status);
-  if (index === -1 || index === ORDER_STATUS_SEQUENCE.length - 1) return null;
-  return ORDER_STATUS_SEQUENCE[index + 1];
-}

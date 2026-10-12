@@ -2,7 +2,7 @@
 // (camelCase, optional fields). Shared by the app's services, the Edge Functions and the
 // seed generator so the three can never disagree about a column.
 import type {
-  AddOn, Address, Coupon, ItemOptionGroup, MenuCategory, MenuItem, Offer, Order, OrderItem, OrderStatus,
+  AddOn, Address, AppNotification, Coupon, ItemOptionGroup, MenuCategory, MenuItem, Offer, Order, OrderItem, OrderStatus,
   PaymentMethod, PaymentStatus, Restaurant, VegFlag,
 } from "./domain.ts";
 
@@ -301,5 +301,26 @@ export function orderFromRow(o: OrderRow): Order {
     total: o.total,
     couponCode: o.coupon_code ?? undefined,
     etaMinutes: o.eta_minutes,
+  };
+}
+
+export interface NotificationRow {
+  id: string;
+  user_id: string;
+  order_id: string | null;
+  title: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export function notificationFromRow(n: NotificationRow): AppNotification {
+  return {
+    id: n.id,
+    orderId: n.order_id ?? undefined,
+    title: n.title,
+    body: n.body,
+    createdAt: n.created_at,
+    read: n.read_at !== null,
   };
 }

@@ -3,8 +3,10 @@ import { View, Text, Pressable, FlatList } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ArrowLeft, Bell } from "lucide-react-native";
-import { useNotificationsStore, AppNotification } from "../../store/notifications-store";
+import { useNotifications } from "../../hooks/useNotifications";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { Skeleton } from "../../components/ui/Skeleton";
+import { AppNotification } from "../../types/domain";
 import { colors } from "../../constants/theme";
 
 function Header({ topInset }: { topInset: number }) {
@@ -20,23 +22,19 @@ function Header({ topInset }: { topInset: number }) {
   );
 }
 
-// Lightweight "x minutes/hours/days ago" formatter -- notifications are generated locally in
-// this app (no server timestamps to reconcile), so a simple relative-time string is all this
-// screen needs; no need to pull in a date library for it.
+// Lightweight "x minutes/hours/days ago" formatter -- no date library needed for this.
 function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const diffSec = Math.max(0, Math.round(diffMs / 1000));
+  const diffSec = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
   if (diffSec < 60) return "Just now";
   const diffMin = Math.round(diffSec / 60);
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffHr = Math.round(diffMin / 60);
   if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.round(diffHr / 24);
-  return `${diffDay}d ago`;
+  return `${Math.round(diffHr / 24)}d ago`;
 }
 
 function NotificationRow({ notification }: { notification: AppNotification }) {
-  return (
+  const content = (
     <View className="flex-row items-start px-4 py-3.5 border-b border-border">
       <View className={`mr-3 mt-0.5 h-9 w-9 items-center justify-center rounded-full ${notification.read ? "bg-border/60" : "bg-primary/10"}`}>
         <Bell size={16} color={notification.read ? colors.muted : colors.primary} />
@@ -51,23 +49,49 @@ function NotificationRow({ notification }: { notification: AppNotification }) {
       </View>
     </View>
   );
+  if (!notification.orderId) return content;
+  return (
+    <Pressable onPress={() => router.push(`/tracking/${notification.orderId}`)} accessibilityRole="button">
+      {content}
+    </Pressable>
+  );
 }
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
-  const items = useNotificationsStore((s) => s.items);
-  const markAllRead = useNotificationsStore((s) => s.markAllRead);
+  const { items, markAllRead, isLoading, signedIn } = useNotifications();
 
-  // Marking everything read on mount is intentional: opening this screen is the "I've seen my
-  // notifications" action, so the Home bell badge should clear once the user has visited here.
+  // Opening this screen is the "I've seen my notifications" action, so the badges clear.
   useEffect(() => {
-    markAllRead();
+    markAllRead().catch(() => undefined);
   }, [markAllRead]);
+
+  if (!signedIn) {
+    return (
+      <View className="flex-1 bg-bg">
+        <Header topInset={insets.top} />
+        <EmptyState
+          icon={Bell}
+          title="Sign in to get order updates"
+          description="Status updates for your orders appear here."
+          actionLabel="Sign in"
+          onAction={() => router.push("/auth/login?returnTo=%2Fnotifications")}
+        />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-bg">
       <Header topInset={insets.top} />
-      {items.length === 0 ? (
+      {isLoading ? (
+        <View className="px-4 py-2">
+          <Skeleton width="100%" height={64} />
+          <View className="mt-3">
+            <Skeleton width="100%" height={64} />
+          </View>
+        </View>
+      ) : items.length === 0 ? (
         <EmptyState icon={Bell} title="No notifications yet" description="We'll let you know when there's something new." />
       ) : (
         <FlatList

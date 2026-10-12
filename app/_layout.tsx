@@ -3,18 +3,19 @@ import "../global.css";
 
 import "react-native-gesture-handler";
 import { Stack } from "expo-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { View, Text } from "react-native";
+import { View, Text, AppState } from "react-native";
 import { useAuthStore } from "../store/auth-store";
 import { getCurrentUser, userFromSession } from "../services/auth";
 import { supabase } from "../lib/supabase";
 import { clearLegacyLocalData } from "../lib/legacy-cleanup";
 import { useFavoritesStore } from "../store/favorites-store";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
+import { useRealtimeSync } from "../hooks/useRealtimeSync";
 
 const queryClient = new QueryClient();
 
@@ -38,10 +39,22 @@ function OfflineBanner({ isOnline }: { isOnline: boolean }) {
   );
 }
 
+function RealtimeSync() {
+  useRealtimeSync();
+  return null;
+}
+
 export default function RootLayout() {
   const setUser = useAuthStore((s) => s.setUser);
   const setHydrated = useAuthStore((s) => s.setHydrated);
   const { isOnline } = useNetworkStatus();
+
+  // React Native has no window focus; tell TanStack Query when the app is foregrounded so
+  // stale queries (e.g. an order whose Realtime update was missed) refetch automatically.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => focusManager.setFocused(state === "active"));
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +93,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <RealtimeSync />
           <StatusBar style="dark" />
           <OfflineBanner isOnline={isOnline} />
           <Stack screenOptions={{ headerShown: false }}>

@@ -1,17 +1,19 @@
 import React from "react";
-import { View, Text, ScrollView, Pressable, Linking } from "react-native";
+import { View, Text, ScrollView, Pressable, Linking, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, AlertTriangle, FlaskConical, Phone, HelpCircle, Clock } from "lucide-react-native";
-import { getOrderById } from "../../services/orders";
+import { ArrowLeft, AlertTriangle, FlaskConical, Phone, HelpCircle, Clock, RotateCcw } from "lucide-react-native";
+import { getOrderById, cancelOrder } from "../../services/orders";
 import { getRestaurantById } from "../../services/restaurants";
 import { TrackingTimeline } from "../../components/orders/TrackingTimeline";
 import { Card } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { formatOrderDate } from "../../lib/formatting/datetime";
-import { ORDER_STATUS_LABELS } from "../../features/orders/status";
+import { ORDER_STATUS_LABELS, isTerminalStatus } from "../../features/orders/status";
+import { isCancellable } from "../../supabase/functions/_shared/place-order-core";
 import { colors } from "../../constants/theme";
 
 function Header({ topInset }: { topInset: number }) {
@@ -35,8 +37,36 @@ export default function TrackingScreen() {
     queryKey: ["order", orderId],
     queryFn: () => getOrderById(orderId as string),
     enabled: !!orderId,
+    // Realtime normally pushes status changes; polling is the fallback if the socket drops.
+    refetchInterval: (query) => {
+      const current = query.state.data;
+      return current && !isTerminalStatus(current.status) ? 30_000 : false;
+    },
   });
   const order = orderQuery.data;
+
+  const queryClient = useQueryClient();
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelOrder(orderId as string),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["order", orderId], updated);
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  function confirmCancel() {
+    if (!order) return;
+    Alert.alert(
+      "Cancel this order?",
+      order.paymentStatus === "paid_simulated"
+        ? "Your simulated payment will be marked as refunded."
+        : "The restaurant will be told not to prepare it.",
+      [
+        { text: "Keep order", style: "cancel" },
+        { text: "Cancel order", style: "destructive", onPress: () => cancelMutation.mutate() },
+      ]
+    );
+  }
 
   const restaurantQuery = useQuery({
     queryKey: ["restaurant", order?.restaurantId],
@@ -101,8 +131,8 @@ export default function TrackingScreen() {
         <View className="mb-4 flex-row items-start rounded-xl bg-primary/10 px-3 py-2.5">
           <FlaskConical size={16} color={colors.primary} />
           <Text className="ml-2 flex-1 text-xs font-semibold text-primary">
-            Simulated tracking (development mode) -- there is no real courier or live GPS behind
-            this screen. The status advances on its own every few seconds to demonstrate the flow.
+            Simulated tracking (development mode) -- a server job advances this order every 30 seconds to
+            demonstrate the flow. There is no real courier or live GPS behind this screen.
           </Text>
         </View>
 
@@ -117,6 +147,28 @@ export default function TrackingScreen() {
         <Card className="mb-4 p-4">
           <TrackingTimeline status={order.status} />
         </Card>
+
+        {order.paymentStatus === "refunded_simulated" ? (
+          <View className="mb-4 flex-row items-center rounded-xl bg-primary/10 px-3 py-2.5">
+            <RotateCcw size={16} color={colors.primary} />
+            <Text className="ml-2 flex-1 text-xs font-semibold text-primary">Refund issued (simulated)</Text>
+          </View>
+        ) : null}
+
+        {isCancellable(order.status) ? (
+          <View className="mb-4">
+            <Button
+              title="Cancel order"
+              variant="outline"
+              loading={cancelMutation.isPending}
+              onPress={confirmCancel}
+              accessibilityLabel="Cancel this order"
+            />
+            {cancelMutation.error ? (
+              <Text className="mt-2 text-xs text-danger">{(cancelMutation.error as Error).message}</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <Card className="mb-4 p-4">
           <Text className="mb-2 text-sm font-bold text-ink">{order.restaurantName}</Text>

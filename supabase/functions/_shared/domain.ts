@@ -174,3 +174,12 @@ export interface User {
   email?: string;
   isGuest: boolean;
 }
+
+export interface AppNotification {
+  id: string;
+  orderId?: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  read: boolean;
+}

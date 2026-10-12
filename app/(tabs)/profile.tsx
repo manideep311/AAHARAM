@@ -15,7 +15,7 @@ import {
   LucideIcon,
 } from "lucide-react-native";
 import { useAuthStore } from "../../store/auth-store";
-import { useNotificationsStore } from "../../store/notifications-store";
+import { useNotifications } from "../../hooks/useNotifications";
 import { signOut } from "../../services/auth";
 import { requireSignIn } from "../../features/auth/requireSignIn";
 import { Button } from "../../components/ui/Button";
@@ -58,7 +58,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
-  const unreadCount = useNotificationsStore((s) => s.unreadCount);
+  const { unreadCount } = useNotifications();
 
   const isGuest = !user || user.isGuest;
   const initials = user?.name ? user.name.trim().charAt(0).toUpperCase() : "G";

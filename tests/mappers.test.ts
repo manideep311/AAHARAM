@@ -6,6 +6,7 @@ import {
   couponFromRow, couponToRow,
   addressFromRow, addressToWrite, AddressRow,
   orderFromRow, OrderRow,
+  notificationFromRow, NotificationRow,
 } from "../supabase/functions/_shared/mappers";
 import { SEED_RESTAURANTS } from "../data/seed/restaurants";
 import { SEED_CATEGORIES } from "../data/seed/categories";
@@ -136,6 +137,21 @@ describe("orderFromRow", () => {
       tax: 22,
       total: 491,
       etaMinutes: 35,
+    });
+  });
+});
+
+describe("notificationFromRow", () => {
+  it("derives `read` from read_at", () => {
+    const row: NotificationRow = {
+      id: "n1", user_id: "u1", order_id: "o1", title: "Out for delivery", body: "On its way!",
+      read_at: null, created_at: "2026-10-12T12:06:00+00:00",
+    };
+    expect(notificationFromRow(row)).toEqual({
+      id: "n1", orderId: "o1", title: "Out for delivery", body: "On its way!", createdAt: row.created_at, read: false,
+    });
+    expect(notificationFromRow({ ...row, order_id: null, read_at: "2026-10-12T12:07:00+00:00" })).toEqual({
+      id: "n1", title: "Out for delivery", body: "On its way!", createdAt: row.created_at, read: true,
     });
   });
 });
